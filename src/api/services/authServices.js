@@ -236,16 +236,13 @@ exports.registerService = async (body, userAgent = "", ip = "") => {
 // --- Login Service ---
 exports.loginService = async (body, userAgent = "", ip = "") => {
   try {
-    const { identifier, password } = body;
-    const user = await User.findOne({
-      $or: [{ phone_number: identifier }, { user_name: identifier }],
-    });
-
-    if (!user || !(await comparePassword(password, user.password)))
+    const { phone_number, role } = body;
+    const user = await User.findOne({ phone_number });
+    if (!user)
       return {
         status: false,
-        statusCode: 401,
-        message: "Invalid credentials",
+        statusCode: 400,
+        message: "User not found",
         data: {},
       };
 

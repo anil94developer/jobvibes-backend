@@ -32,13 +32,10 @@ exports.registerSchema = Joi.object({
 });
 
 exports.loginSchema = Joi.object({
-  phone_number: Joi.string()
-    .pattern(/^[0-9]{10,15}$/)
-    .required()
-    .messages({
-      "string.pattern.base": "Phone number must be between 10 and 15 digits",
-      "any.required": "Phone number is required",
-    }),
+  phone_number: Joi.string().required().messages({
+    "string.pattern.base": "Phone number must be between 10 and 15 digits",
+    "any.required": "Phone number is required",
+  }),
   role: Joi.string().valid("candidate", "employer").required().messages({
     "any.required": "Role is required",
     "any.only": "Role must be either 'candidate' or 'employer'",
