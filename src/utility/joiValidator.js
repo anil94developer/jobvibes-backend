@@ -1,23 +1,23 @@
-module.exports = (schema, params = "body") => async (req, res, next) => {
+module.exports =
+  (schema, params = "body") =>
+  (req, res, next) => {
     try {
-        const check = await schema.validate(req[params]);
+      const { error } = schema.validate(req[params], { abortEarly: false });
 
-        if (check.error) {
-            return res.status(200).json({
-                status: false,
-                subCode: 500,
-                message: check.error.details[0].message,
-            })
-        } else {
-            next();
-        }
+      if (error) {
+        return res.status(400).json({
+          status: false,
+          subCode: 400,
+          message: error.details.map((d) => d.message).join(", "),
+        });
+      }
 
-    } catch (error) {
-
-        return res.status(200).json({
-            status: false,
-            subCode: 500,
-            message: error.message
-        })
+      next();
+    } catch (err) {
+      return res.status(500).json({
+        status: false,
+        subCode: 500,
+        message: err.message,
+      });
     }
-}
+  };

@@ -1,41 +1,31 @@
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
 
-// Define the user schema
-const userSchema = new Schema(
+const userSchema = new mongoose.Schema(
   {
-    user_name: {
+    user_name: { type: String, required: true },
+    phone_number: { type: String, required: true, unique: true },
+    email: { type: String, unique: true },
+    password: { type: String, required: true },
+
+    // User role: candidate or employer
+    role: {
       type: String,
-      required: true,
+      enum: ["candidate", "employer"],
+      default: "candidate",
     },
-    phone_number: {
+
+    // Candidate-specific fields
+    gender: {
       type: String,
-      required: true,
-      unique: true, // ✅ phone must be unique
+      enum: ["male", "female", "other", "prefer_not_to_say"],
+      default: "prefer_not_to_say",
     },
-    email: {
-      type: String,
-      required: false, // ✅ optional
-      unique: true, // ✅ unique if provided
-      sparse: true, // ✅ allows multiple null/missing
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    confirm_password: {
-      type: String,
-      required: true,
-    },
-    isDeleted: {
-      type: Boolean,
-      default: false, // ✅ better default (not deleted)
-    },
+    skills: { type: [String], default: [] },
+    qualifications: { type: [String], default: [] },
+    intro_video_url: { type: String, default: "" },
+    resume_url: { type: String, default: "" },
   },
   { timestamps: true }
 );
 
-// Create a User model using the schema
-const User = mongoose.model("User", userSchema);
-
-module.exports = User;
+module.exports = mongoose.model("User", userSchema);

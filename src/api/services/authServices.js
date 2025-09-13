@@ -1,6 +1,7 @@
 const User = require("../../models/userSchema");
 const Session = require("../../models/sessionSchema");
 const Otp = require("../../models/otpSchema");
+const admin = require("../../utility/firebase");
 const {
   hashPassword,
   comparePassword,
@@ -9,39 +10,78 @@ const {
   generateOtp,
 } = require("../../utility/authUtils");
 
-// ✅ destructure safe fields from user
+// ✅ Destructure safe fields from user
 function destructureUser(user) {
   if (!user) return {};
-  const { _id, user_name, phone_number, email } = user;
+  const {
+    _id,
+    user_name,
+    phone_number,
+    email,
+    role,
+    skills,
+    qualifications,
+    intro_video_url,
+    resume_url,
+    gender,
+  } = user;
   return {
     id: _id,
     user_name,
     phone_number,
     email,
+    role,
+    skills,
+    qualifications,
+    intro_video_url,
+    resume_url,
+    gender,
   };
 }
 
-exports.requestOtpService = async (req) => {
+// --- OTP Services ---
+exports.requestOtpService = async (phone) => {
   try {
-    const { phone } = req.body;
-    const code = generateOtp();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const firebaseToken = await admin.auth().createCustomToken(phone);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
 
-    await Otp.create({ phone, code, expires_at: expiresAt });
+    await Otp.create({
+      phone,
+      firebase_token: firebaseToken,
+      expires_at: expiresAt,
+    });
 
-    return { status: true, message: "OTP sent", data: { ttl: 300 } };
-  } catch (e) {
-    return { status: false, message: e.message, data: {} };
+    return {
+      status: true,
+      statusCode: 200,
+      message: "OTP token generated",
+      data: { token: firebaseToken, ttl: 300 },
+    };
+  } catch (error) {
+    return { status: false, statusCode: 500, message: error.message, data: {} };
   }
 };
 
-exports.verifyOtpService = async (req) => {
+exports.verifyOtpService = async (
+  phone,
+  firebase_token,
+  role,
+  gender,
+  userAgent = "",
+  ip = ""
+) => {
   try {
-    const { phone, code } = req.body;
-    const otp = await Otp.findOne({ phone, code }).sort({ createdAt: -1 });
+    const otpRecord = await Otp.findOne({ phone, firebase_token }).sort({
+      createdAt: -1,
+    });
 
-    if (!otp || otp.expires_at < new Date()) {
-      return { status: false, message: "Invalid or expired OTP", data: {} };
+    if (!otpRecord || otpRecord.expires_at < new Date()) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "Invalid or expired OTP token",
+        data: {},
+      };
     }
 
     let user = await User.findOne({ phone_number: phone });
@@ -53,218 +93,235 @@ exports.verifyOtpService = async (req) => {
         email: `${phone}@placeholder.local`,
         password,
         confirm_password: password,
+        role: role || "candidate",
+        gender: gender || "prefer_not_to_say",
       });
     }
 
     const session = await Session.create({
       user_id: user._id,
-      user_agent: req.headers["user-agent"] || "",
-      ip: req.ip || "",
+      user_agent: userAgent,
+      ip,
     });
 
     const tokens = issueTokens(user._id.toString(), session._id.toString());
 
-    const { id, user_name, phone_number, email } = destructureUser(user);
+    await Otp.deleteOne({ _id: otpRecord._id });
 
     return {
       status: true,
+      statusCode: 200,
       message: "OTP verified",
-      data: {
-        id,
-        user_name,
-        phone_number,
-        email,
-        tokens,
-      },
+      data: { ...destructureUser(user), tokens },
     };
-  } catch (e) {
-    return { status: false, message: e.message, data: {} };
+  } catch (error) {
+    return { status: false, statusCode: 500, message: error.message, data: {} };
   }
 };
 
-exports.registerService = async (req) => {
+// --- Registration Service ---
+exports.registerService = async (body, userAgent = "", ip = "") => {
   try {
-    const { phone_number, user_name, email, password } = req.body;
+    const {
+      phone_number,
+      user_name,
+      email,
+      password,
+      role,
+      gender,
+      skills,
+      qualifications,
+      intro_video_url,
+      resume_url,
+    } = body;
 
-    // Check if phone_number or user_name already exists
-    const existsPhone = await User.findOne({ phone_number });
-    if (existsPhone) {
-      return { status: false, message: "Phone already registered", data: {} };
-    }
-
-    const existsUserName = await User.findOne({ user_name });
-    if (existsUserName) {
-      return { status: false, message: "User name already taken", data: {} };
-    }
-
-    // Optional email uniqueness
-    if (email) {
-      const existsEmail = await User.findOne({ email });
-      if (existsEmail) {
-        return { status: false, message: "Email already registered", data: {} };
-      }
-    }
+    if (await User.findOne({ phone_number }))
+      return {
+        status: false,
+        statusCode: 400,
+        message: "Phone already registered",
+        data: {},
+      };
+    if (await User.findOne({ user_name }))
+      return {
+        status: false,
+        statusCode: 400,
+        message: "User name already taken",
+        data: {},
+      };
+    if (email && (await User.findOne({ email })))
+      return {
+        status: false,
+        statusCode: 400,
+        message: "Email already registered",
+        data: {},
+      };
 
     const hashedPassword = await hashPassword(password);
+
     const user = await User.create({
-      ...req.body,
+      user_name,
+      phone_number,
+      email,
       password: hashedPassword,
       confirm_password: hashedPassword,
+      role: role || "candidate",
+      gender: gender || "prefer_not_to_say",
+      skills: skills || [],
+      qualifications: qualifications || [],
+      intro_video_url: intro_video_url || "",
+      resume_url: resume_url || "",
     });
 
     const session = await Session.create({
       user_id: user._id,
-      user_agent: req.headers["user-agent"] || "",
-      ip: req.ip || "",
+      user_agent: userAgent,
+      ip,
     });
-
     const tokens = issueTokens(user._id.toString(), session._id.toString());
-    const { id, user_name: name, phone_number: phone } = destructureUser(user);
 
     return {
       status: true,
+      statusCode: 201,
       message: "Registered",
-      data: {
-        id,
-        user_name: name,
-        phone_number: phone,
-        email,
-        tokens,
-      },
+      data: { ...destructureUser(user), tokens },
     };
   } catch (e) {
-    return { status: false, message: e.message, data: {} };
+    return { status: false, statusCode: 500, message: e.message, data: {} };
   }
 };
 
-exports.loginService = async (req) => {
+// --- Login Service ---
+exports.loginService = async (body, userAgent = "", ip = "") => {
   try {
-    const { identifier, password } = req.body; // identifier = phone_number OR user_name
-
-    // Find user by phone_number OR user_name
+    const { identifier, password } = body;
     const user = await User.findOne({
       $or: [{ phone_number: identifier }, { user_name: identifier }],
     });
 
-    if (!user) {
-      return { status: false, message: "Invalid credentials", data: {} };
-    }
-
-    const isMatch = await comparePassword(password, user.password);
-    if (!isMatch) {
-      return { status: false, message: "Invalid credentials", data: {} };
-    }
+    if (!user || !(await comparePassword(password, user.password)))
+      return {
+        status: false,
+        statusCode: 401,
+        message: "Invalid credentials",
+        data: {},
+      };
 
     const session = await Session.create({
       user_id: user._id,
-      user_agent: req.headers["user-agent"] || "",
-      ip: req.ip || "",
+      user_agent: userAgent,
+      ip,
     });
-
     const tokens = issueTokens(user._id.toString(), session._id.toString());
-    const { id, user_name, phone_number } = destructureUser(user);
 
     return {
       status: true,
+      statusCode: 200,
       message: "Logged in",
-      data: {
-        id,
-        user_name,
-        phone_number,
-        email: user.email,
-        tokens,
-      },
+      data: { ...destructureUser(user), tokens },
     };
   } catch (e) {
-    return { status: false, message: e.message, data: {} };
+    return { status: false, statusCode: 500, message: e.message, data: {} };
   }
 };
 
-exports.logoutService = async (req) => {
+// --- Logout Service ---
+exports.logoutService = async (user) => {
   try {
-    const sessionId = req.user?.sid;
-    if (sessionId) {
+    const sessionId = user?.sid;
+    if (sessionId)
       await Session.findByIdAndUpdate(sessionId, {
         revoked: true,
         revoked_at: new Date(),
       });
-    }
-    return { status: true, message: "Logged out", data: {} };
+
+    return { status: true, statusCode: 200, message: "Logged out", data: {} };
   } catch (e) {
-    return { status: false, message: e.message, data: {} };
+    return { status: false, statusCode: 500, message: e.message, data: {} };
   }
 };
 
-exports.refreshTokenService = async (req) => {
+// --- Refresh Token Service ---
+exports.refreshTokenService = async (body) => {
   try {
-    const { refresh_token } = req.body;
+    const { refresh_token } = body;
     const payload = verifyToken(refresh_token, "refresh");
-
-    if (!payload) return { status: false, message: "Invalid token", data: {} };
+    if (!payload)
+      return {
+        status: false,
+        statusCode: 401,
+        message: "Invalid token",
+        data: {},
+      };
 
     const session = await Session.findById(payload.sid);
-    if (!session || session.revoked) {
-      return { status: false, message: "Invalid session", data: {} };
-    }
+    if (!session || session.revoked)
+      return {
+        status: false,
+        statusCode: 401,
+        message: "Invalid session",
+        data: {},
+      };
 
     const tokens = issueTokens(payload.sub, payload.sid);
-    return { status: true, message: "Refreshed", data: { tokens } };
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Refreshed",
+      data: { tokens },
+    };
   } catch (e) {
-    return { status: false, message: e.message, data: {} };
+    return { status: false, statusCode: 500, message: e.message, data: {} };
   }
 };
 
-exports.getMeService = async (req) => {
+// --- Get Me Service ---
+exports.getMeService = async (userId) => {
   try {
-    const user = await User.findById(req.user.sub, {
-      _id: 1,
-      user_name: 1,
-      email: 1,
-      phone_number: 1,
-    });
-
-    if (!user) {
-      return { status: false, message: "Not found", data: {} };
-    }
-
-    const { id, user_name, email, phone_number } = destructureUser(user);
+    const user = await User.findById(userId);
+    if (!user)
+      return { status: false, statusCode: 404, message: "Not found", data: {} };
 
     return {
       status: true,
+      statusCode: 200,
       message: "Me",
-      data: { id, user_name, email, phone_number },
+      data: destructureUser(user),
     };
   } catch (e) {
-    return { status: false, message: e.message, data: {} };
+    return { status: false, statusCode: 500, message: e.message, data: {} };
   }
 };
 
-exports.revokeSessionService = async (req) => {
+// --- Revoke Session Service ---
+exports.revokeSessionService = async (userId, sessionId) => {
   try {
-    const { id } = req.params;
     await Session.findOneAndUpdate(
-      { _id: id, user_id: req.user.sub },
+      { _id: sessionId, user_id: userId },
       { revoked: true, revoked_at: new Date() }
     );
-
-    return { status: true, message: "Session revoked", data: {} };
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Session revoked",
+      data: {},
+    };
   } catch (e) {
-    return { status: false, message: e.message, data: {} };
+    return { status: false, statusCode: 500, message: e.message, data: {} };
   }
 };
 
-exports.forgotPasswordService = async (req) => {
+// --- Forgot Password Service ---
+exports.forgotPasswordService = async (email) => {
   try {
-    const { email } = req.body;
     const user = await User.findOne({ email });
-
-    if (!user) {
+    if (!user)
       return {
         status: true,
+        statusCode: 200,
         message: "If the email exists, reset was sent",
         data: {},
       };
-    }
 
     const token = Math.random().toString(36).slice(2, 10);
     await Session.create({
@@ -274,23 +331,32 @@ exports.forgotPasswordService = async (req) => {
       expires_at: new Date(Date.now() + 15 * 60 * 1000),
     });
 
-    // ⚠️ Don’t expose token in response for security
-    return { status: true, message: "Reset email sent", data: {} };
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Reset email sent",
+      data: {},
+    };
   } catch (e) {
-    return { status: false, message: e.message, data: {} };
+    return { status: false, statusCode: 500, message: e.message, data: {} };
   }
 };
 
-exports.resetPasswordService = async (req) => {
+// --- Reset Password Service ---
+exports.resetPasswordService = async (token, password) => {
   try {
-    const { token, password } = req.body;
     const reset = await Session.findOne({
       reset_token: token,
       purpose: "password_reset",
     });
 
     if (!reset || (reset.expires_at && reset.expires_at < new Date())) {
-      return { status: false, message: "Invalid or expired token", data: {} };
+      return {
+        status: false,
+        statusCode: 400,
+        message: "Invalid or expired token",
+        data: {},
+      };
     }
 
     const hashedPassword = await hashPassword(password);
@@ -298,37 +364,47 @@ exports.resetPasswordService = async (req) => {
       password: hashedPassword,
       confirm_password: hashedPassword,
     });
-
     await Session.deleteOne({ _id: reset._id });
-    return { status: true, message: "Password reset", data: {} };
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Password reset",
+      data: {},
+    };
   } catch (e) {
-    return { status: false, message: e.message, data: {} };
+    return { status: false, statusCode: 500, message: e.message, data: {} };
   }
 };
 
 // --- Stubbed features ---
 exports.socialLoginService = async () => ({
   status: true,
+  statusCode: 200,
   message: "Social login not yet implemented",
   data: {},
 });
 exports.verifyEmailService = async () => ({
   status: true,
+  statusCode: 200,
   message: "Email verification not yet implemented",
   data: {},
 });
 exports.verifyPhoneService = async () => ({
   status: true,
+  statusCode: 200,
   message: "Phone verification not yet implemented",
   data: {},
 });
 exports.setup2FAService = async () => ({
   status: true,
+  statusCode: 200,
   message: "2FA setup not yet implemented",
   data: {},
 });
 exports.verify2FAService = async () => ({
   status: true,
+  statusCode: 200,
   message: "2FA verify not yet implemented",
   data: {},
 });
