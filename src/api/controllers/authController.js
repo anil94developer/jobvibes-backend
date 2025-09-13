@@ -11,6 +11,7 @@ const {
   verifyEmailService,
   verifyPhoneService,
   updateProfile,
+  tokenRegisterService,
 } = require("../services/authServices");
 
 // --- Helper to handle responses ---
@@ -44,6 +45,22 @@ exports.verifyOtpController = async (req, res, next) => {
     console.log("Response in verifyOtpController:--", data);
   } catch (error) {
     console.log("Error in verifyOtpController:--", error);
+    next(error);
+  }
+};
+
+exports.tokenRegisterController = async (req, res, next) => {
+  try {
+    console.log("Request body in tokenRegisterController:--", req.body);
+    const data = await tokenRegisterService(
+      req.body,
+      req.headers["user-agent"],
+      req.ip
+    );
+    sendResponse(res, data);
+    console.log("Response in tokenRegisterController:--", data);
+  } catch (error) {
+    console.log("Error in tokenRegisterController:--", error);
     next(error);
   }
 };

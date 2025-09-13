@@ -10,6 +10,7 @@ const {
   refreshSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  tokenRegisterSchema,
 } = require("../../validationSchema/authValidationSchema");
 
 const {
@@ -29,6 +30,7 @@ const {
   setup2FAController,
   verify2FAController,
   updateProfileController,
+  tokenRegisterController,
 } = require("../../controllers/authController");
 
 const { authenticate } = require("../../middleware/authMiddleware");
@@ -38,6 +40,12 @@ router.post("/otp", validatorResponse(otpRequestSchema), requestOtpController);
 router.post("/verify", validatorResponse(otpVerifySchema), verifyOtpController);
 
 // Core auth
+
+router.post(
+  "/token-register",
+  validatorResponse(tokenRegisterSchema),
+  tokenRegisterController
+);
 router.post("/register", validatorResponse(registerSchema), registerController);
 router.post("/login", validatorResponse(loginSchema), loginController);
 router.post("/logout", authenticate, logoutController);

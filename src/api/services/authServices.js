@@ -9,6 +9,7 @@ const {
   verifyToken,
   generateOtp,
 } = require("../../utility/authUtils");
+const jwt = require("jsonwebtoken");
 
 // ✅ Destructure safe fields from user
 function destructureUser(user) {
@@ -116,6 +117,83 @@ exports.verifyOtpService = async (
     };
   } catch (error) {
     return { status: false, statusCode: 500, message: error.message, data: {} };
+  }
+};
+
+// ---- Token Registration ---- //
+exports.tokenRegisterService = async (body, userAgent = "", ip = "") => {
+  try {
+    const { token, role } = body;
+
+    // ✅ Decode Firebase JWT (no signature verification here)
+    const decoded = jwt.decode(token, { complete: true });
+    if (!decoded) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "Invalid token",
+        data: {},
+      };
+    }
+
+    const phone = decoded.payload?.phone_number;
+    if (!phone) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "Phone number not found in token",
+        data: {},
+      };
+    }
+
+    // Check if user exists
+    let user = await User.findOne({ phone_number: phone });
+
+    if (!user) {
+      // const password = await hashPassword("otp_only");
+      user = await User.create({
+        user_name: `user_${Date.now()}`, // random unique username
+        phone_number: phone,
+        // email: `${phone}@placeholder.local`,
+        // password,
+        // confirm_password: password,
+        role: role || "candidate",
+        // gender: gender || "",
+      });
+    }
+
+    // Create session
+    const session = await Session.create({
+      user_id: user._id,
+      user_agent: userAgent,
+      ip,
+    });
+
+    // Issue JWT tokens
+    const tokens = issueTokens(user._id.toString(), session._id.toString());
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Token decoded & user registered",
+      data: {
+        id: user._id,
+        user_name: user.user_name,
+        phone_number: user.phone_number,
+        email: user.email,
+        role: user.role,
+        gender: user.gender,
+        tokens,
+      },
+    };
+  } catch (error) {
+    console.error("Error in tokenRegisterService:", error);
+    return {
+      status: false,
+      statusCode: 500,
+      message: error.message,
+      data: {},
+    };
   }
 };
 

@@ -15,7 +15,12 @@ const userSchema = new mongoose.Schema(
       default: generateRandomUsername,
     },
     phone_number: { type: String, required: true, unique: true },
-    email: { type: String, unique: true },
+    email: {
+      type: String,
+      unique: true,
+      sparse: true, // ✅ allows multiple docs with null/undefined
+      default: null,
+    },
     password: { type: String },
 
     // Role is required
@@ -29,7 +34,7 @@ const userSchema = new mongoose.Schema(
     gender: {
       type: String,
       enum: ["male", "female", "other", "prefer_not_to_say"],
-      default: "prefer_not_to_say",
+      // default: "prefer_not_to_say",
     },
 
     skills: { type: [String], default: [] },
