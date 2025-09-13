@@ -6,14 +6,11 @@ const {
   logoutService,
   refreshTokenService,
   getMeService,
-  revokeSessionService,
   forgotPasswordService,
   resetPasswordService,
-  socialLoginService,
   verifyEmailService,
   verifyPhoneService,
-  setup2FAService,
-  verify2FAService,
+  updateProfile,
 } = require("../services/authServices");
 
 // --- Helper to handle responses ---
@@ -119,18 +116,6 @@ exports.getMeController = async (req, res, next) => {
   }
 };
 
-exports.revokeSessionController = async (req, res, next) => {
-  try {
-    console.log("Request body in revokeSessionController:--", req.body);
-    const data = await revokeSessionService(req.user.sub, req.params.id);
-    sendResponse(res, data);
-    console.log("Response in revokeSessionController:--", data);
-  } catch (error) {
-    console.log("Error in revokeSessionController:--", error);
-    next(error);
-  }
-};
-
 exports.forgotPasswordController = async (req, res, next) => {
   try {
     console.log("Request body in forgotPasswordController:--", req.body);
@@ -152,19 +137,6 @@ exports.resetPasswordController = async (req, res, next) => {
     console.log("Response in resetPasswordController:--", data);
   } catch (error) {
     console.log("Error in resetPasswordController:--", error);
-    next(error);
-  }
-};
-
-// --- Stubbed controllers ---
-exports.socialLoginController = async (req, res, next) => {
-  try {
-    console.log("Request body in socialLoginController:--", req.body);
-    const data = await socialLoginService();
-    sendResponse(res, data);
-    console.log("Response in socialLoginController:--", data);
-  } catch (error) {
-    console.log("Error in socialLoginController:--", error);
     next(error);
   }
 };
@@ -193,26 +165,14 @@ exports.verifyPhoneController = async (req, res, next) => {
   }
 };
 
-exports.setup2FAController = async (req, res, next) => {
+exports.updateProfileController = async (req, res, next) => {
   try {
-    console.log("Request body in setup2FAController:--", req.body);
-    const data = await setup2FAService();
+    console.log("Request body in updateProfileController:--", req.body);
+    const data = await updateProfile(req.params.id, req.body);
     sendResponse(res, data);
-    console.log("Response in setup2FAController:--", data);
+    console.log("Response in updateProfileController:--", data);
   } catch (error) {
-    console.log("Error in setup2FAController:--", error);
-    next(error);
-  }
-};
-
-exports.verify2FAController = async (req, res, next) => {
-  try {
-    console.log("Request body in verify2FAController:--", req.body);
-    const data = await verify2FAService();
-    sendResponse(res, data);
-    console.log("Response in verify2FAController:--", data);
-  } catch (error) {
-    console.log("Error in verify2FAController:--", error);
+    console.log("Error in updateProfileController:--", error);
     next(error);
   }
 };

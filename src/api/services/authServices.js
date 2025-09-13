@@ -122,18 +122,7 @@ exports.verifyOtpService = async (
 // --- Registration Service ---
 exports.registerService = async (body, userAgent = "", ip = "") => {
   try {
-    const {
-      phone_number,
-      user_name,
-      email,
-      password,
-      role,
-      gender,
-      skills,
-      qualifications,
-      intro_video_url,
-      resume_url,
-    } = body;
+    const { phone_number, role } = body;
 
     if (await User.findOne({ phone_number }))
       return {
@@ -142,35 +131,10 @@ exports.registerService = async (body, userAgent = "", ip = "") => {
         message: "Phone already registered",
         data: {},
       };
-    if (await User.findOne({ user_name }))
-      return {
-        status: false,
-        statusCode: 400,
-        message: "User name already taken",
-        data: {},
-      };
-    if (email && (await User.findOne({ email })))
-      return {
-        status: false,
-        statusCode: 400,
-        message: "Email already registered",
-        data: {},
-      };
-
-    const hashedPassword = await hashPassword(password);
 
     const user = await User.create({
-      user_name,
       phone_number,
-      email,
-      password: hashedPassword,
-      confirm_password: hashedPassword,
       role: role || "candidate",
-      gender: gender || "prefer_not_to_say",
-      skills: skills || [],
-      qualifications: qualifications || [],
-      intro_video_url: intro_video_url || "",
-      resume_url: resume_url || "",
     });
 
     const session = await Session.create({
@@ -293,24 +257,6 @@ exports.getMeService = async (userId) => {
   }
 };
 
-// --- Revoke Session Service ---
-exports.revokeSessionService = async (userId, sessionId) => {
-  try {
-    await Session.findOneAndUpdate(
-      { _id: sessionId, user_id: userId },
-      { revoked: true, revoked_at: new Date() }
-    );
-    return {
-      status: true,
-      statusCode: 200,
-      message: "Session revoked",
-      data: {},
-    };
-  } catch (e) {
-    return { status: false, statusCode: 500, message: e.message, data: {} };
-  }
-};
-
 // --- Forgot Password Service ---
 exports.forgotPasswordService = async (email) => {
   try {
@@ -377,13 +323,6 @@ exports.resetPasswordService = async (token, password) => {
   }
 };
 
-// --- Stubbed features ---
-exports.socialLoginService = async () => ({
-  status: true,
-  statusCode: 200,
-  message: "Social login not yet implemented",
-  data: {},
-});
 exports.verifyEmailService = async () => ({
   status: true,
   statusCode: 200,
@@ -396,15 +335,54 @@ exports.verifyPhoneService = async () => ({
   message: "Phone verification not yet implemented",
   data: {},
 });
-exports.setup2FAService = async () => ({
-  status: true,
-  statusCode: 200,
-  message: "2FA setup not yet implemented",
-  data: {},
-});
-exports.verify2FAService = async () => ({
-  status: true,
-  statusCode: 200,
-  message: "2FA verify not yet implemented",
-  data: {},
-});
+// --- Update Profile Service ---
+exports.updateProfile = async (id, body) => {
+  try {
+    const updateData = { ...body };
+
+    // ✅ Exclude phone_number from update
+    delete updateData.phone_number;
+
+    // ✅ Ensure arrays are properly handled
+    if (updateData.skills && !Array.isArray(updateData.skills)) {
+      updateData.skills = [updateData.skills];
+    }
+    if (
+      updateData.qualifications &&
+      !Array.isArray(updateData.qualifications)
+    ) {
+      updateData.qualifications = [updateData.qualifications];
+    }
+    if (updateData.experience && !Array.isArray(updateData.experience)) {
+      updateData.experience = [updateData.experience];
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updatedUser) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Profile updated successfully",
+      data: destructureUser(updatedUser),
+    };
+  } catch (error) {
+    return {
+      status: false,
+      statusCode: 500,
+      message: "Error updating profile",
+      data: { error: error.message },
+    };
+  }
+};
