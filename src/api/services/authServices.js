@@ -123,7 +123,7 @@ exports.verifyOtpService = async (
 // ---- Token Registration ---- //
 exports.tokenRegisterService = async (body, userAgent = "", ip = "") => {
   try {
-    const { token, role } = body;
+    const { token } = body;
 
     // ✅ Decode Firebase JWT (no signature verification here)
     const decoded = jwt.decode(token, { complete: true });
@@ -157,7 +157,7 @@ exports.tokenRegisterService = async (body, userAgent = "", ip = "") => {
         // email: `${phone}@placeholder.local`,
         // password,
         // confirm_password: password,
-        role: role || "candidate",
+        // role: role || "candidate",
         // gender: gender || "",
       });
     }
@@ -236,7 +236,7 @@ exports.registerService = async (body, userAgent = "", ip = "") => {
 // --- Login Service ---
 exports.loginService = async (body, userAgent = "", ip = "") => {
   try {
-    const { phone_number, role } = body;
+    const { phone_number } = body;
     const user = await User.findOne({ phone_number });
     if (!user)
       return {

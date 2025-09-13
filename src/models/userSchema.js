@@ -27,7 +27,8 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["candidate", "employer"],
-      required: [true, "Role is required"],
+      sparse: true, // ✅ allows multiple docs with null/undefined
+      default: null,
     },
 
     // Candidate-specific fields
