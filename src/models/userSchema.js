@@ -11,15 +11,12 @@ const userSchema = new mongoose.Schema(
     user_name: {
       type: String,
       required: true,
-      unique: true,
       default: generateRandomUsername,
     },
-    phone_number: { type: String, required: true, unique: true },
+    phone_number: { type: String, required: true },
     email: {
       type: String,
-      unique: true,
-      sparse: true, // ✅ allows multiple docs with null/undefined
-      default: null,
+      default: null, // ✅ allows null without index
     },
     password: { type: String },
 
@@ -27,15 +24,13 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["candidate", "employer"],
-      sparse: true, // ✅ allows multiple docs with null/undefined
-      default: null,
+      required: [true, "Role is required"],
     },
 
     // Candidate-specific fields
     gender: {
       type: String,
       enum: ["male", "female", "other", "prefer_not_to_say"],
-      // default: "prefer_not_to_say",
     },
 
     skills: { type: [String], default: [] },
@@ -71,7 +66,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Pre-save hook to ensure unique username
+// Pre-save hook to ensure unique username (in app logic, not DB index)
 userSchema.pre("save", async function (next) {
   if (this.isNew && !this.user_name) {
     let isUnique = false;

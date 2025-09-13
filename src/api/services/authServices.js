@@ -10,35 +10,7 @@ const {
   generateOtp,
 } = require("../../utility/authUtils");
 const jwt = require("jsonwebtoken");
-
-// ✅ Destructure safe fields from user
-function destructureUser(user) {
-  if (!user) return {};
-  const {
-    _id,
-    user_name,
-    phone_number,
-    email,
-    role,
-    skills,
-    qualifications,
-    intro_video_url,
-    resume_url,
-    gender,
-  } = user;
-  return {
-    id: _id,
-    user_name,
-    phone_number,
-    email,
-    role,
-    skills,
-    qualifications,
-    intro_video_url,
-    resume_url,
-    gender,
-  };
-}
+const { destructureUser } = require("../../utility/responseFormat");
 
 // --- OTP Services ---
 exports.requestOtpService = async (phone) => {

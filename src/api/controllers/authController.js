@@ -1,3 +1,4 @@
+const { sendResponse } = require("../../utility/responseFormat");
 const {
   requestOtpService,
   verifyOtpService,
@@ -15,9 +16,6 @@ const {
 } = require("../services/authServices");
 
 // --- Helper to handle responses ---
-const sendResponse = (res, data) => {
-  res.status(data.statusCode || 200).json(data);
-};
 
 exports.requestOtpController = async (req, res, next) => {
   try {
