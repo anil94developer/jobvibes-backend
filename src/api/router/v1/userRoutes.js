@@ -10,6 +10,7 @@ const {
   step2Controller,
   step3Controller,
   uploadController,
+  skillsController,
 } = require("../../controllers/userController.js");
 const { authenticate } = require("../../middleware/authMiddleware");
 const {
@@ -44,6 +45,8 @@ router.post(
 );
 router.post("/step-2", authenticate, step2Controller);
 router.post("/step-3", authenticate, step3Controller);
+
+router.get("/skills", authenticate, skillsController);
 
 router.post(
   "/upload",

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Skill = require("./skillsSchema"); // Adjust path if needed
 
 // Helper function to generate random username
 function generateRandomUsername() {
@@ -16,7 +17,7 @@ const userSchema = new mongoose.Schema(
     phone_number: { type: String, required: true },
     email: {
       type: String,
-      default: null, // ✅ allows null without index
+      default: null,
     },
     password: { type: String },
 
@@ -52,7 +53,7 @@ const userSchema = new mongoose.Schema(
         {
           company_name: { type: String, required: true },
           duration: { type: String },
-          ctc: { type: Number },
+          ctc: { type: String },
           role: { type: String },
           start_date: { type: Date },
           end_date: { type: Date },
@@ -91,6 +92,32 @@ userSchema.pre("save", async function (next) {
     }
   }
   next();
+});
+
+// Post-save hook to sync new skills to Skill collection
+userSchema.post("save", async function (doc) {
+  try {
+    const userSkills = doc.skills || [];
+    if (!userSkills.length) return;
+
+    // Find existing skills
+    const existingSkills = await Skill.find({
+      name: { $in: userSkills },
+    }).select("name");
+
+    const existingNames = existingSkills.map((s) => s.name);
+
+    // Insert any new skills
+    const newSkills = userSkills.filter(
+      (skill) => !existingNames.includes(skill)
+    );
+    if (newSkills.length > 0) {
+      const skillsToInsert = newSkills.map((name) => ({ name }));
+      await Skill.insertMany(skillsToInsert);
+    }
+  } catch (error) {
+    console.error("Error syncing skills:", error);
+  }
 });
 
 module.exports = mongoose.model("User", userSchema);

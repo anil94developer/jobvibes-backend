@@ -53,3 +53,15 @@ exports.uploadController = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.skillsController = async (req, res, next) => {
+  try {
+    console.log("Request body in skillsController:--", req.body);
+    const data = await skillsServices(req);
+    sendResponse(res, data);
+    console.log("Response in skillsController:--", data);
+  } catch (error) {
+    console.log("Error in skillsController:--", error);
+    next(error);
+  }
+};

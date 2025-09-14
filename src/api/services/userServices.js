@@ -152,6 +152,7 @@ exports.step2Services = async (req) => {
       data: { ...destructureUser(updateUser), tokens },
     };
   } catch (e) {
+    console.log("Error in step2Services:--", e);
     return { status: false, statusCode: 500, message: e.message, data: {} };
   }
 };
@@ -247,6 +248,52 @@ exports.uploadServices = async (req, res) => {
       statusCode: 200,
       message: "Files uploaded successfully",
       data: savedFiles,
+    };
+  } catch (error) {
+    console.error("An error occurred:", error);
+    return {
+      status: false,
+      statusCode: 500,
+      message: error.message,
+      data: {},
+    };
+  }
+};
+
+exports.skillsServices = async (queryParams) => {
+  try {
+    // Destructure query parameters
+    const { page = 1, limit = 10, search = "" } = queryParams;
+
+    const filter = search
+      ? { name: { $regex: search, $options: "i" } } // case-insensitive search
+      : {};
+
+    const skip = (page - 1) * limit;
+
+    const [skills, total] = await Promise.all([
+      Skill.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(Number(skip))
+        .limit(Number(limit)),
+      Skill.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Skills fetched successfully",
+      data: {
+        skills,
+        pagination: {
+          total,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages,
+        },
+      },
     };
   } catch (error) {
     console.error("An error occurred:", error);
