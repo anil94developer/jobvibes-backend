@@ -19,9 +19,8 @@ const {
 } = require("../../validationSchema/userValidationSchema.js");
 
 // Uploads folder path
-const uploadDir = path.join(__dirname, "../uploads"); // points to src/uploads
+const uploadDir = path.join(__dirname, "../../../uploads");
 
-// Ensure "uploads" folder exists
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
