@@ -301,11 +301,12 @@ exports.getMeService = async (userId) => {
     if (!user)
       return { status: false, statusCode: 404, message: "Not found", data: {} };
 
+    const getStatus = await getUserStepStatus(user);
     return {
       status: true,
       statusCode: 200,
       message: "Me",
-      data: destructureUser(user),
+      data: { ...destructureUser(user), ...getStatus },
     };
   } catch (e) {
     return { status: false, statusCode: 500, message: e.message, data: {} };
