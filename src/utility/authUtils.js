@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const ACCESS_TTL_SEC = 60 * 15; // 15 minutes
+const ACCESS_TTL_SEC = 60 * 60 * 24 * 30; // 30 days
 const REFRESH_TTL_SEC = 60 * 60 * 24 * 30; // 30 days
 
 // 🔑 Hash a password

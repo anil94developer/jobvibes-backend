@@ -4,6 +4,7 @@ const {
   step2Services,
   step3Services,
   uploadServices,
+  skillsServices,
 } = require("../services/userServices");
 
 exports.step1Controller = async (req, res, next) => {

@@ -1,7 +1,7 @@
 const User = require("../../models/userSchema");
 const Session = require("../../models/sessionSchema");
 const File = require("../../models/fileSchema"); // import your File schema
-
+const Skill = require("../../models/skillsSchema");
 const { destructureUser } = require("../../utility/responseFormat");
 const { issueTokens } = require("../../utility/authUtils");
 
