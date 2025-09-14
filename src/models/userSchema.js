@@ -25,7 +25,6 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["candidate", "employer"],
-      required: [true, "Role is required"],
     },
 
     // Common fields

@@ -2,7 +2,7 @@
 node_modules/
 
 # Ignore environment variables
-# .env
+.env
 
 # Ignore build outputs
 dist/
@@ -12,5 +12,8 @@ build/
 .DS_Store
 Thumbs.db
 
+# Ignore sensitive files
 src/utility/privatekey.json
+
+# Ignore uploads folder
 uploads/
