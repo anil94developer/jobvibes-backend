@@ -197,7 +197,7 @@ exports.updateProfileController = async (req, res, next) => {
 exports.sendVerifyEmailController = async (req, res, next) => {
   try {
     console.log("Request body in sendVerifyEmailController:--", req.body);
-    const data = await sendEmailOtpService(req.body);
+    const data = await sendEmailOtpService(req);
     sendResponse(res, data);
     console.log("Response in sendVerifyEmailController:--", data);
   } catch (error) {
@@ -209,7 +209,7 @@ exports.sendVerifyEmailController = async (req, res, next) => {
 exports.validateOtpController = async (req, res, next) => {
   try {
     console.log("Request body in validateOtpController:--", req.body);
-    const data = await validateEmailOtpService(req.params.id, req.body);
+    const data = await validateEmailOtpService(req);
     sendResponse(res, data);
     console.log("Response in validateOtpController:--", data);
   } catch (error) {

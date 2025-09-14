@@ -1,3 +1,4 @@
+const { Types } = require("mongoose");
 const User = require("../../models/userSchema");
 const Session = require("../../models/sessionSchema");
 const Otp = require("../../models/otpSchema");
@@ -432,9 +433,10 @@ exports.updateProfile = async (id, body) => {
 };
 
 // --- Send OTP Service ---
-exports.sendEmailOtpService = async (payload) => {
+exports.sendEmailOtpService = async (req) => {
   try {
-    const { email } = payload;
+    const userId = req.user.sub;
+    const { email } = req.body;
 
     if (!email) {
       return {
@@ -444,33 +446,25 @@ exports.sendEmailOtpService = async (payload) => {
         data: {},
       };
     }
+
     // 1. Generate OTP
     const otp = generateOtp();
 
-    // 2. Generate Firebase custom token (optional, if using Firebase Auth)
-    const firebaseToken = await admin.auth().createCustomToken(email);
-
     // 3. Save OTP in DB
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
     await Otp.create({
       email,
       otp,
-      firebase_token: firebaseToken,
+      user_id: userId,
       expires_at: expiresAt,
     });
 
-    // 4. Send Email using Firebase sendEmail function
-    const templatePath = path.join(
-      __dirname,
-      "emailTemplates",
-      "verifyEmail.hbs"
-    ); // path to your OTP template
     const emailData = {
       subject: "Your Email Verification OTP",
       otp,
     };
 
-    const emailResult = await sendEmail(email, templatePath, emailData);
+    const emailResult = await sendEmail(email, "verifyEmail", emailData);
 
     if (!emailResult.status) {
       throw new Error(emailResult.message);
@@ -479,7 +473,7 @@ exports.sendEmailOtpService = async (payload) => {
     return {
       status: true,
       message: "OTP sent to email",
-      data: { firebaseToken, ttl: 300 },
+      data: { ttl: 300 },
     };
   } catch (error) {
     console.error("sendEmailOtpService error:", error);
@@ -488,11 +482,20 @@ exports.sendEmailOtpService = async (payload) => {
 };
 
 // --- Validate OTP Service ---
-exports.validateEmailOtpService = async (email, otp) => {
+exports.validateEmailOtpService = async (req) => {
   try {
-    const otpRecord = await Otp.findOne({ email, otp }).sort({ createdAt: -1 });
+    const userId = req.user.sub;
+    console.log("------ ~ userId:------", userId);
+    const { otp } = req.body;
+
+    const otpRecord = await Otp.findOne({
+      user_id: new Types.ObjectId(userId),
+      otp,
+    }).sort({ createdAt: -1 });
 
     if (!otpRecord || otpRecord.expires_at < new Date()) {
+      // OTP valid, remove record
+      await Otp.deleteOne({ _id: otpRecord._id });
       return { status: false, message: "Invalid or expired OTP", data: {} };
     }
 

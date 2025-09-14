@@ -1,61 +1,72 @@
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
+require("dotenv").config();
+
 const nodemailer = require("nodemailer");
 const fs = require("fs-extra");
 const path = require("path");
 const handlebars = require("handlebars");
 
-// admin.initializeApp();
+// Load email credentials from environment variables
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
 
-// Configure your Gmail or SMTP transporter
-// const transporter = nodemailer.createTransport({
-//   service: "gmail",
-//   auth: {
-//     user: functions.config().email.user, // set via Firebase config
-//     pass: functions.config().email.pass,
-//   },
-// });
+if (!EMAIL_USER || !EMAIL_PASS) {
+  throw new Error(
+    "Please set EMAIL_USER and EMAIL_PASS environment variables."
+  );
+}
+
+// Create transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,
+  },
+});
 
 /**
- * sendEmail - Reusable function
- * @param {String} email
- * @param {String} templatePath
- * @param {Object} data
+ * Sends an email using a Handlebars template
+ * @param {string} email - Recipient email
+ * @param {string} templateName - Template filename in templates folder
+ * @param {object} data - Variables to inject into template
  */
-exports.sendEmail = async (email, templatePath, data = {}) => {
+async function sendEmail(email, templateName, data = {}) {
   try {
-    const templateContent = await fs.readFile(
-      path.resolve(templatePath),
-      "utf8"
+    // Automatically append .hbs if missing
+    if (!templateName.endsWith(".hbs")) {
+      templateName += ".hbs";
+    }
+
+    // Construct full path to template relative to this file
+    const templateFullPath = path.join(
+      __dirname,
+      "../../templates",
+      templateName
     );
+
+    // Read and compile the template
+    const templateContent = await fs.readFile(templateFullPath, "utf8");
     const template = handlebars.compile(templateContent);
+
+    // Inject variables from data
     const html = template(data);
 
+    // Send the email
     await transporter.sendMail({
-      from: functions.config().email.user,
+      from: EMAIL_USER,
       to: email,
       subject: data.subject || "Notification",
       html,
     });
 
+    console.log(
+      `Email sent successfully to ${email} using template ${templateName}`
+    );
     return { status: true, message: "Email sent successfully" };
   } catch (error) {
     console.error("sendEmail error:", error);
     return { status: false, message: error.message };
   }
-};
+}
 
-// Firebase Callable Function
-exports.sendEmailFunction = functions.https.onCall(async (data, context) => {
-  const { email, templatePath, templateData } = data;
-
-  if (!email || !templatePath) {
-    throw new functions.https.HttpsError(
-      "invalid-argument",
-      "Email and templatePath are required."
-    );
-  }
-
-  const result = await sendEmail(email, templatePath, templateData);
-  return result;
-});
+module.exports = { sendEmail };
