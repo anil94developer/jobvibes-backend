@@ -5,6 +5,7 @@ const {
   step3Services,
   uploadServices,
   skillsServices,
+  updateProfileServices,
 } = require("../services/userServices");
 
 exports.step1Controller = async (req, res, next) => {
@@ -63,6 +64,18 @@ exports.skillsController = async (req, res, next) => {
     console.log("Response in skillsController:--", data);
   } catch (error) {
     console.log("Error in skillsController:--", error);
+    next(error);
+  }
+};
+
+exports.updateController = async (req, res, next) => {
+  try {
+    console.log("Request body in updateController:--", req.body);
+    const data = await updateProfileServices(req);
+    sendResponse(res, data);
+    console.log("Response in updateController:--", data);
+  } catch (error) {
+    console.log("Error in updateController:--", error);
     next(error);
   }
 };

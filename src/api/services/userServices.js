@@ -3,7 +3,6 @@ const Session = require("../../models/sessionSchema");
 const File = require("../../models/fileSchema"); // import your File schema
 const Skill = require("../../models/skillsSchema");
 const { destructureUser } = require("../../utility/responseFormat");
-const { issueTokens } = require("../../utility/authUtils");
 
 // --- Candidate step 1 Service ---
 exports.step1Services = async (req) => {
@@ -34,13 +33,12 @@ exports.step1Services = async (req) => {
       user_agent: userAgent,
       ip,
     });
-    const tokens = issueTokens(userId.toString(), session._id.toString());
 
     return {
       status: true,
       statusCode: 201,
       message: "Registered",
-      data: { ...destructureUser(updateUser), tokens },
+      data: { ...destructureUser(updateUser) },
     };
   } catch (e) {
     return { status: false, statusCode: 500, message: e.message, data: {} };
@@ -143,13 +141,12 @@ exports.step2Services = async (req) => {
     });
 
     // Issue tokens
-    const tokens = issueTokens(userId.toString(), session._id.toString());
 
     return {
       status: true,
       statusCode: 201,
       message: "Registered",
-      data: { ...destructureUser(updateUser), tokens },
+      data: { ...destructureUser(updateUser) },
     };
   } catch (e) {
     console.log("Error in step2Services:--", e);
@@ -202,13 +199,12 @@ exports.step3Services = async (req) => {
     });
 
     // Issue tokens
-    const tokens = issueTokens(userId.toString(), session._id.toString());
 
     return {
       status: true,
       statusCode: 201,
       message: "Profile updated (Step 3)",
-      data: { ...destructureUser(updateUser), tokens },
+      data: { ...destructureUser(updateUser) },
     };
   } catch (e) {
     return { status: false, statusCode: 500, message: e.message, data: {} };
@@ -303,5 +299,107 @@ exports.skillsServices = async (queryParams) => {
       message: error.message,
       data: {},
     };
+  }
+};
+
+// --- Update profile service ---
+exports.updateProfileServices = async (req) => {
+  try {
+    const userId = req.user.sub;
+    const userAgent = req.headers["user-agent"];
+    const ip = req.ip;
+
+    if (!userId) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    let updateFields = {};
+
+    // Candidate fields
+    if (user.role === "candidate") {
+      const {
+        name,
+        email,
+        gender,
+        skills,
+        experience,
+        qualifications,
+        resume_url,
+        job_type,
+        description,
+        intro_video_url,
+      } = req.body;
+
+      if (skills && Array.isArray(skills)) {
+        updateFields.skills = skills;
+      }
+
+      // Partial updates only
+      if (name) updateFields.name = name;
+      if (email) updateFields.email = email;
+      if (gender) updateFields.gender = gender;
+      if (experience) updateFields.experience = experience;
+      if (qualifications) updateFields.qualifications = qualifications;
+      if (resume_url) updateFields.resume_url = resume_url;
+      if (job_type) updateFields.job_type = job_type;
+      if (description) updateFields.description = description;
+      if (intro_video_url) updateFields.intro_video_url = intro_video_url;
+    }
+
+    // Employer fields
+    if (user.role === "employer") {
+      const {
+        name,
+        email,
+        gender,
+        company_name,
+        about_company,
+        company_address,
+      } = req.body;
+      if (name) updateFields.name = name;
+      if (email) updateFields.email = email;
+      if (gender) updateFields.gender = gender;
+      if (company_name) updateFields.company_name = company_name;
+      if (about_company) updateFields.about_company = about_company;
+      if (company_address) updateFields.company_address = company_address;
+    }
+
+    // Update user in DB
+    const updatedUser = await User.findByIdAndUpdate(userId, updateFields, {
+      new: true,
+      runValidators: true,
+    });
+
+    // Create session (optional, can be removed if not needed for update)
+    const session = await Session.create({
+      user_id: userId,
+      user_agent: userAgent,
+      ip,
+    });
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Profile updated successfully",
+      data: { ...destructureUser(updatedUser) },
+    };
+  } catch (error) {
+    console.error("Error in updateProfileServices:", error);
+    return { status: false, statusCode: 500, message: error.message, data: {} };
   }
 };
