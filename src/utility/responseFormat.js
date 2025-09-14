@@ -63,3 +63,47 @@ exports.destructureUser = (user) => {
 exports.sendResponse = (res, data) => {
   res.status(data.statusCode || 200).json(data);
 };
+
+// src/utility/userSteps.js
+/**
+ * Returns step completion status for a user
+ * @param {Object} user - Mongoose User document
+ * @returns {Object} - { step1Completed, step2Completed, step3Completed }
+ */
+exports.getUserStepStatus = async (user) => {
+  let step1Completed = false;
+  let step2Completed = false;
+  let step3Completed = false;
+
+  if (!user) return { step1Completed, step2Completed, step3Completed };
+
+  // Step 1: basic info
+  if (user.name && user.role) step1Completed = true;
+
+  // Step 2: role-specific info
+  if (
+    user.role === "candidate" &&
+    Array.isArray(user.skills) &&
+    user.skills.length > 0
+  ) {
+    step2Completed = true;
+  }
+  if (
+    user.role === "employer" &&
+    user.company_name &&
+    user.about_company &&
+    user.company_address
+  ) {
+    step2Completed = true;
+  }
+
+  // Step 3: intro/profile
+  if (
+    (user.description && user.description.trim() !== "") ||
+    (user.intro_video_url && user.intro_video_url.trim() !== "")
+  ) {
+    step3Completed = true;
+  }
+
+  return { step1Completed, step2Completed, step3Completed };
+};

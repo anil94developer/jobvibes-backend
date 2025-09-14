@@ -10,7 +10,10 @@ const {
   generateOtp,
 } = require("../../utility/authUtils");
 const jwt = require("jsonwebtoken");
-const { destructureUser } = require("../../utility/responseFormat");
+const {
+  destructureUser,
+  getUserStepStatus,
+} = require("../../utility/responseFormat");
 
 // --- OTP Services ---
 exports.requestOtpService = async (phone) => {
@@ -144,6 +147,8 @@ exports.tokenRegisterService = async (body, userAgent = "", ip = "") => {
     // Issue JWT tokens
     const tokens = issueTokens(user._id.toString(), session._id.toString());
 
+    const getStatus = await getUserStepStatus(user);
+
     return {
       status: true,
       statusCode: 200,
@@ -156,6 +161,7 @@ exports.tokenRegisterService = async (body, userAgent = "", ip = "") => {
         role: user.role,
         gender: user.gender,
         tokens,
+        ...getStatus,
       },
     };
   } catch (error) {
@@ -193,12 +199,12 @@ exports.registerService = async (body, userAgent = "", ip = "") => {
       ip,
     });
     const tokens = issueTokens(user._id.toString(), session._id.toString());
-
+    const getStatus = await getUserStepStatus(user);
     return {
       status: true,
       statusCode: 201,
       message: "Registered",
-      data: { ...destructureUser(user), tokens },
+      data: { ...destructureUser(user), tokens, ...getStatus },
     };
   } catch (e) {
     return { status: false, statusCode: 500, message: e.message, data: {} };
@@ -224,12 +230,12 @@ exports.loginService = async (body, userAgent = "", ip = "") => {
       ip,
     });
     const tokens = issueTokens(user._id.toString(), session._id.toString());
-
+    const getStatus = await getUserStepStatus(user);
     return {
       status: true,
       statusCode: 200,
       message: "Logged in",
-      data: { ...destructureUser(user), tokens },
+      data: { ...destructureUser(user), tokens, ...getStatus },
     };
   } catch (e) {
     return { status: false, statusCode: 500, message: e.message, data: {} };
