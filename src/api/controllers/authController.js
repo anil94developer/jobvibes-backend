@@ -13,6 +13,8 @@ const {
   verifyPhoneService,
   updateProfile,
   tokenRegisterService,
+  sendEmailOtpService,
+  validateEmailOtpService,
 } = require("../services/authServices");
 
 // --- Helper to handle responses ---
@@ -188,6 +190,30 @@ exports.updateProfileController = async (req, res, next) => {
     console.log("Response in updateProfileController:--", data);
   } catch (error) {
     console.log("Error in updateProfileController:--", error);
+    next(error);
+  }
+};
+
+exports.sendVerifyEmailController = async (req, res, next) => {
+  try {
+    console.log("Request body in sendVerifyEmailController:--", req.body);
+    const data = await sendEmailOtpService(req.body);
+    sendResponse(res, data);
+    console.log("Response in sendVerifyEmailController:--", data);
+  } catch (error) {
+    console.log("Error in sendVerifyEmailController:--", error);
+    next(error);
+  }
+};
+
+exports.validateOtpController = async (req, res, next) => {
+  try {
+    console.log("Request body in validateOtpController:--", req.body);
+    const data = await validateEmailOtpService(req.params.id, req.body);
+    sendResponse(res, data);
+    console.log("Response in validateOtpController:--", data);
+  } catch (error) {
+    console.log("Error in validateOtpController:--", error);
     next(error);
   }
 };

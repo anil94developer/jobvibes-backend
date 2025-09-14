@@ -31,6 +31,8 @@ const {
   verify2FAController,
   updateProfileController,
   tokenRegisterController,
+  validateOtpController,
+  sendVerifyEmailController,
 } = require("../../controllers/authController");
 
 const { authenticate } = require("../../middleware/authMiddleware");
@@ -71,4 +73,11 @@ router.post(
 router.get("/me", authenticate, getMeController);
 
 router.post("/update/:id", updateProfileController);
+
+// Route to send verification email (requires authentication)
+router.post("/send-verify-email", authenticate, sendVerifyEmailController);
+
+// Route to validate OTP
+router.post("/validate-otp", authenticate, validateOtpController);
+
 module.exports = router;

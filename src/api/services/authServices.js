@@ -14,6 +14,8 @@ const {
   destructureUser,
   getUserStepStatus,
 } = require("../../utility/responseFormat");
+const path = require("path");
+const { sendEmail } = require("./emailService");
 
 // --- OTP Services ---
 exports.requestOtpService = async (phone) => {
@@ -376,18 +378,6 @@ exports.resetPasswordService = async (token, password) => {
   }
 };
 
-exports.verifyEmailService = async () => ({
-  status: true,
-  statusCode: 200,
-  message: "Email verification not yet implemented",
-  data: {},
-});
-exports.verifyPhoneService = async () => ({
-  status: true,
-  statusCode: 200,
-  message: "Phone verification not yet implemented",
-  data: {},
-});
 // --- Update Profile Service ---
 exports.updateProfile = async (id, body) => {
   try {
@@ -437,5 +427,80 @@ exports.updateProfile = async (id, body) => {
       message: "Error updating profile",
       data: { error: error.message },
     };
+  }
+};
+
+// --- Send OTP Service ---
+exports.sendEmailOtpService = async (payload) => {
+  try {
+    const { email } = payload;
+
+    if (!email) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "Email is required",
+        data: {},
+      };
+    }
+    // 1. Generate OTP
+    const otp = generateOtp();
+
+    // 2. Generate Firebase custom token (optional, if using Firebase Auth)
+    const firebaseToken = await admin.auth().createCustomToken(email);
+
+    // 3. Save OTP in DB
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+    await Otp.create({
+      email,
+      otp,
+      firebase_token: firebaseToken,
+      expires_at: expiresAt,
+    });
+
+    // 4. Send Email using Firebase sendEmail function
+    const templatePath = path.join(
+      __dirname,
+      "emailTemplates",
+      "verifyEmail.hbs"
+    ); // path to your OTP template
+    const emailData = {
+      subject: "Your Email Verification OTP",
+      otp,
+    };
+
+    const emailResult = await sendEmail(email, templatePath, emailData);
+
+    if (!emailResult.status) {
+      throw new Error(emailResult.message);
+    }
+
+    return {
+      status: true,
+      message: "OTP sent to email",
+      data: { firebaseToken, ttl: 300 },
+    };
+  } catch (error) {
+    console.error("sendEmailOtpService error:", error);
+    return { status: false, message: error.message, data: {} };
+  }
+};
+
+// --- Validate OTP Service ---
+exports.validateEmailOtpService = async (email, otp) => {
+  try {
+    const otpRecord = await Otp.findOne({ email, otp }).sort({ createdAt: -1 });
+
+    if (!otpRecord || otpRecord.expires_at < new Date()) {
+      return { status: false, message: "Invalid or expired OTP", data: {} };
+    }
+
+    // OTP valid, remove record
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    return { status: true, message: "OTP verified successfully", data: {} };
+  } catch (error) {
+    console.error("validateEmailOtpService error:", error);
+    return { status: false, message: error.message, data: {} };
   }
 };
