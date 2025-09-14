@@ -11,6 +11,8 @@ app.use(cors());
 // Connect to MongoDB database
 require("./src/connections/mongodb");
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // Parse JSON bodies in incoming requests
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

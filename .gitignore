@@ -13,3 +13,4 @@ build/
 Thumbs.db
 
 src/utility/privatekey.json
+uploads/

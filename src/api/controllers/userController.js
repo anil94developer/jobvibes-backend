@@ -3,6 +3,7 @@ const {
   step1Services,
   step2Services,
   step3Services,
+  uploadServices,
 } = require("../services/userServices");
 
 exports.step1Controller = async (req, res, next) => {
@@ -37,6 +38,18 @@ exports.step3Controller = async (req, res, next) => {
     console.log("Response in step3Controller:--", data);
   } catch (error) {
     console.log("Error in step3Controller:--", error);
+    next(error);
+  }
+};
+
+exports.uploadController = async (req, res, next) => {
+  try {
+    console.log("Request body in uploadController:--", req.body);
+    const data = await uploadServices(req);
+    sendResponse(res, data);
+    console.log("Response in uploadController:--", data);
+  } catch (error) {
+    console.log("Error in uploadController:--", error);
     next(error);
   }
 };

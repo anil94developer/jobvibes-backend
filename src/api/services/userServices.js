@@ -1,5 +1,7 @@
 const User = require("../../models/userSchema");
 const Session = require("../../models/sessionSchema");
+const File = require("../../models/fileSchema"); // import your File schema
+
 const { destructureUser } = require("../../utility/responseFormat");
 const { issueTokens } = require("../../utility/authUtils");
 
@@ -209,5 +211,50 @@ exports.step3Services = async (req) => {
     };
   } catch (e) {
     return { status: false, statusCode: 500, message: e.message, data: {} };
+  }
+};
+
+exports.uploadServices = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "No files uploaded",
+        data: {},
+      };
+    }
+
+    // Build base URL (uses PORT / domain automatically)
+    const baseUrl = `${req.protocol}://${req.get("host")}/uploads`;
+    console.log("------ ~ baseUrl:------", baseUrl);
+
+    // Map uploaded files
+    const filesToSave = req.files.map((file) => ({
+      filename: file.filename,
+      originalName: file.originalname,
+      path: file.path,
+      size: file.size,
+      url: `${baseUrl}/${file.filename}`, // ✅ return full URL
+    }));
+
+    // Save in DB (optional)
+    const savedFiles = await File.insertMany(filesToSave);
+    console.log("------ ~ savedFiles:------", savedFiles);
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Files uploaded successfully",
+      data: savedFiles,
+    };
+  } catch (error) {
+    console.error("An error occurred:", error);
+    return {
+      status: false,
+      statusCode: 500,
+      message: error.message,
+      data: {},
+    };
   }
 };
