@@ -1,5 +1,9 @@
 const { sendResponse } = require("../../utility/responseFormat");
-const { step1Services, step2Services } = require("../services/userServices");
+const {
+  step1Services,
+  step2Services,
+  step3Services,
+} = require("../services/userServices");
 
 exports.step1Controller = async (req, res, next) => {
   try {
@@ -21,6 +25,18 @@ exports.step2Controller = async (req, res, next) => {
     console.log("Response in step2Controller:--", data);
   } catch (error) {
     console.log("Error in step2Controller:--", error);
+    next(error);
+  }
+};
+
+exports.step3Controller = async (req, res, next) => {
+  try {
+    console.log("Request body in step3Controller:--", req.body);
+    const data = await step3Services(req);
+    sendResponse(res, data);
+    console.log("Response in step3Controller:--", data);
+  } catch (error) {
+    console.log("Error in step3Controller:--", error);
     next(error);
   }
 };

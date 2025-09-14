@@ -20,19 +20,21 @@ const userSchema = new mongoose.Schema(
     },
     password: { type: String },
 
-    // Role is required
+    // Role
     role: {
       type: String,
       enum: ["candidate", "employer"],
       required: [true, "Role is required"],
     },
 
-    // Candidate-specific fields
+    // Common fields
+    name: { type: String },
     gender: {
       type: String,
       enum: ["male", "female", "other", "prefer_not_to_say"],
     },
 
+    // Candidate-specific fields
     skills: { type: [String], default: [] },
     qualifications: {
       type: [
@@ -59,9 +61,19 @@ const userSchema = new mongoose.Schema(
       default: [],
     },
     description: { type: String, default: "" },
-
     intro_video_url: { type: String, default: "" },
     resume_url: { type: String, default: "" },
+
+    // Candidate job preferences
+    job_type: {
+      type: String,
+      enum: ["freelance", "full_time", "part_time"],
+    },
+
+    // Employer-specific fields
+    company_name: { type: String },
+    about_company: { type: String },
+    company_address: { type: String },
   },
   { timestamps: true }
 );
