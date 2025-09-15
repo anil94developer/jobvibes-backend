@@ -30,7 +30,7 @@ exports.postFeedServices = async (req) => {
 
     // Populate author details
     const populatedFeed = await Feed.findById(feed._id)
-      .populate("authorId", "name username email role")
+      .populate("authorId", "name profile_image username email role")
       .lean();
 
     // Rename authorId -> authorDetails & add isReacted
@@ -76,7 +76,7 @@ exports.getFeedServices = async (req) => {
       .limit(parseInt(limit))
       .populate(
         "authorId",
-        "name username email role company_name about_company"
+        "name profile_image username email role company_name about_company"
       )
       .lean();
 
@@ -249,6 +249,7 @@ exports.getReactedFeedServices = async (req) => {
                 authorDetails: {
                   _id: "$author._id",
                   name: "$author.name",
+                  profile_image: { $ifNull: ["$author.profile_image", ""] }, // default to empty string
                   username: "$author.username",
                   email: "$author.email",
                   role: "$author.role",

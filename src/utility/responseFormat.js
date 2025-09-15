@@ -10,6 +10,7 @@ exports.destructureUser = (user) => {
     role,
     gender,
     name,
+    profile_image,
 
     // Candidate fields
     skills,
@@ -30,6 +31,7 @@ exports.destructureUser = (user) => {
     id: _id,
     user_name,
     name,
+    profile_image,
     phone_number,
     email,
     role,

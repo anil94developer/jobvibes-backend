@@ -7,4 +7,5 @@ exports.step1Schema = Joi.object({
     .valid("male", "female", "other", "prefer_not_to_say")
     .required(),
   role: Joi.string().valid("candidate", "employer").required(),
+  profile_image: Joi.string().optional(),
 });

@@ -10,7 +10,7 @@ exports.step1Services = async (req) => {
     const userId = req.user.sub;
     const userAgent = req.headers["user-agent"];
     const ip = req.ip;
-    const { name, email, gender, role } = req.body;
+    const { name, email, gender, role, profile_image } = req.body;
 
     if (!userId) {
       return {
@@ -26,6 +26,7 @@ exports.step1Services = async (req) => {
       email,
       gender,
       role,
+      profile_image,
     });
 
     const session = await Session.create({
@@ -334,6 +335,7 @@ exports.updateProfileServices = async (req) => {
     if (user.role === "candidate") {
       const {
         name,
+        profile_image,
         email,
         gender,
         skills,
@@ -359,12 +361,14 @@ exports.updateProfileServices = async (req) => {
       if (job_type) updateFields.job_type = job_type;
       if (description) updateFields.description = description;
       if (intro_video_url) updateFields.intro_video_url = intro_video_url;
+      if (profile_image) updateFields.profile_image = profile_image;
     }
 
     // Employer fields
     if (user.role === "employer") {
       const {
         name,
+        profile_image,
         email,
         gender,
         company_name,
@@ -377,6 +381,7 @@ exports.updateProfileServices = async (req) => {
       if (company_name) updateFields.company_name = company_name;
       if (about_company) updateFields.about_company = about_company;
       if (company_address) updateFields.company_address = company_address;
+      if (profile_image) updateFields.profile_image = profile_image;
     }
 
     // Update user in DB

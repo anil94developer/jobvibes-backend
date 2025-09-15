@@ -29,6 +29,7 @@ const userSchema = new mongoose.Schema(
 
     // Common fields
     name: { type: String },
+    profile_image: { type: String, default: "" },
     gender: {
       type: String,
       enum: ["male", "female", "other", "prefer_not_to_say"],
