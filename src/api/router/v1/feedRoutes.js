@@ -4,10 +4,15 @@ const router = express.Router();
 const validatorResponse = require("../../../utility/joiValidator");
 
 const { authenticate } = require("../../middleware/authMiddleware");
-const { feedSchema } = require("../../validationSchema/feedValidationSchema");
+const {
+  feedSchema,
+  postReactionSchema,
+} = require("../../validationSchema/feedValidationSchema");
 const {
   postFeedController,
   getFeedController,
+  postReactionController,
+  getReactedController,
 } = require("../../controllers/feedController");
 
 router.get("/", authenticate, getFeedController);
@@ -19,5 +24,14 @@ router.post(
   validatorResponse(feedSchema),
   postFeedController
 );
+
+router.post(
+  "/:feedId/reactions",
+  authenticate,
+  validatorResponse(postReactionSchema),
+  postReactionController
+);
+
+router.get("/reacted-feeds", authenticate, getReactedController);
 
 module.exports = router;

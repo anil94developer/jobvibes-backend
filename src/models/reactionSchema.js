@@ -7,15 +7,16 @@ const ReactionSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    type: {
-      type: String,
-      enum: ["like", "love", "haha", "wow", "sad", "angry", "rating"],
+    feedId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Feed",
       required: true,
     },
-    ratingValue: { type: Number, min: 1, max: 5 }, // optional: 1-5 star ratings
+    ratingValue: { type: Number, min: 1, max: 5 },
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
-module.exports = ReactionSchema;
+// ✅ Export the model, not the schema
+module.exports = mongoose.model("Reaction", ReactionSchema);
