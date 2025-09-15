@@ -9,6 +9,7 @@ exports.destructureUser = (user) => {
     email,
     role,
     gender,
+    name,
 
     // Candidate fields
     skills,
@@ -28,6 +29,7 @@ exports.destructureUser = (user) => {
   const baseData = {
     id: _id,
     user_name,
+    name,
     phone_number,
     email,
     role,
