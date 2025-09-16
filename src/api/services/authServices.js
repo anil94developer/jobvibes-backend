@@ -26,7 +26,7 @@ exports.requestOtpService = async (phone) => {
 
     await Otp.create({
       phone,
-      firebase_token: firebaseToken,
+      fcm_token: firebaseToken,
       expires_at: expiresAt,
     });
 
@@ -43,14 +43,14 @@ exports.requestOtpService = async (phone) => {
 
 exports.verifyOtpService = async (
   phone,
-  firebase_token,
+  fcm_token,
   role,
   gender,
   userAgent = "",
   ip = ""
 ) => {
   try {
-    const otpRecord = await Otp.findOne({ phone, firebase_token }).sort({
+    const otpRecord = await Otp.findOne({ phone, fcm_token }).sort({
       createdAt: -1,
     });
 
@@ -101,7 +101,7 @@ exports.verifyOtpService = async (
 // ---- Token Registration ---- //
 exports.tokenRegisterService = async (body, userAgent = "", ip = "") => {
   try {
-    const { token } = body;
+    const { token, fcm_token } = body;
 
     // ✅ Decode Firebase JWT (no signature verification here)
     const decoded = jwt.decode(token, { complete: true });
@@ -132,6 +132,7 @@ exports.tokenRegisterService = async (body, userAgent = "", ip = "") => {
       user = await User.create({
         user_name: `user_${Date.now()}`, // random unique username
         phone_number: phone,
+        fcm_token: fcm_token,
         // email: `${phone}@placeholder.local`,
         // password,
         // confirm_password: password,
@@ -139,6 +140,8 @@ exports.tokenRegisterService = async (body, userAgent = "", ip = "") => {
         // gender: gender || "",
       });
     }
+
+    await User.updateOne({ _id: user._id }, { fcm_token });
 
     // Create session
     const session = await Session.create({

@@ -1,8 +1,10 @@
 const User = require("../../models/userSchema");
 const Session = require("../../models/sessionSchema");
+const Feed = require("../../models/feedSchema");
 const File = require("../../models/fileSchema"); // import your File schema
 const Skill = require("../../models/skillsSchema");
 const { destructureUser } = require("../../utility/responseFormat");
+const notificationEmitter = require("../../emitter/notificationEmitter");
 
 // --- Candidate step 1 Service ---
 exports.step1Services = async (req) => {
@@ -191,6 +193,7 @@ exports.step3Services = async (req) => {
     const updateUser = await User.findByIdAndUpdate(userId, updateFields, {
       new: true,
     });
+    console.log("------ ~ updateUser:------", updateUser);
 
     // Create session (optional for step-3, but keeping consistent)
     const session = await Session.create({
@@ -198,6 +201,25 @@ exports.step3Services = async (req) => {
       user_agent: userAgent,
       ip,
     });
+
+    // post intro URL as feed
+    if (intro_video_url) {
+      const feed = await Feed.create({
+        authorId: userId,
+        media: [intro_video_url],
+      });
+
+      notificationEmitter.emit("sendNotification", {
+        title: "New Feed",
+        body: "New video available!",
+        token: updateUser.fcm_token,
+        posted_by: userId,
+        data: {
+          type: "feed",
+          feedId: feed._id,
+        },
+      });
+    }
 
     // Issue tokens
 

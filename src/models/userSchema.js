@@ -75,6 +75,10 @@ const userSchema = new mongoose.Schema(
     company_name: { type: String },
     about_company: { type: String },
     company_address: { type: String },
+
+    fcm_token: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

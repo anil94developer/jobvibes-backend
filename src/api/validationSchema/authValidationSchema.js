@@ -6,11 +6,12 @@ exports.otpRequestSchema = Joi.object({
 
 exports.otpVerifySchema = Joi.object({
   phone: Joi.string().pattern(new RegExp("^[0-9]{10,15}$")).required(),
-  firebase_token: Joi.string().required(),
+  fcm_token: Joi.string().required(),
 });
 
 exports.tokenRegisterSchema = Joi.object({
   token: Joi.string().required(),
+  fcm_token: Joi.string().required(),
 });
 
 exports.registerSchema = Joi.object({

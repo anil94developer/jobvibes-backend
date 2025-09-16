@@ -34,10 +34,10 @@ exports.requestOtpController = async (req, res, next) => {
 exports.verifyOtpController = async (req, res, next) => {
   try {
     console.log("Request body in verifyOtpController:--", req.body);
-    const { phone, firebase_token } = req.body;
+    const { phone, fcm_token } = req.body;
     const data = await verifyOtpService(
       phone,
-      firebase_token,
+      fcm_token,
       req.headers["user-agent"],
       req.ip
     );

@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const User = require("../../models/userSchema");
 const Feed = require("../../models/feedSchema");
 const Reaction = require("../../models/reactionSchema");
+const notificationEmitter = require("../../emitter/notificationEmitter");
 
 // --- postFeed Profile Service ---
 exports.postFeedServices = async (req) => {
@@ -40,6 +41,17 @@ exports.postFeedServices = async (req) => {
       authorDetails: authorId,
       isReacted: false, // just created, current user hasn't reacted yet
     };
+
+    notificationEmitter.emit("sendNotification", {
+      title: "New Feed",
+      body: "New video available!",
+      token: user.fcm_token,
+      posted_by: user._id,
+      data: {
+        type: "feed",
+        feedId: feed._id,
+      },
+    });
 
     return {
       status: true,
