@@ -266,7 +266,7 @@ exports.getReactedFeedServices = async (req) => {
                   about_company: "$author.about_company",
                 },
                 isReacted: true,
-                rating: "$ratingValue", // ✅ include rating value
+                ratingValue: "$ratingValue", // ✅ include rating value
               },
             ],
           },
