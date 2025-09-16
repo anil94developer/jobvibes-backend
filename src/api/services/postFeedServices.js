@@ -89,13 +89,20 @@ exports.getFeedServices = async (req) => {
       feedId: { $in: feedIds },
     }).lean();
 
-    const reactedFeedIds = userReactions.map((r) => r.feedId.toString());
+    // Map reactions by feedId for quick lookup
+    const reactionMap = {};
+    userReactions.forEach((r) => {
+      reactionMap[r.feedId.toString()] = r; // store full reaction
+    });
 
-    // Transform authorId -> authorDetails and add isReacted
+    // Transform feeds with isReacted + rating
     const feedsWithExtras = feeds.map((feed) => {
-      const isReacted = reactedFeedIds.includes(feed._id.toString());
+      const reaction = reactionMap[feed._id.toString()];
+      const isReacted = !!reaction;
+      const ratingValue = reaction ? reaction.ratingValue : 0; // ✅ include rating
       const { authorId, ...rest } = feed;
-      return { ...rest, authorDetails: authorId, isReacted };
+
+      return { ...rest, authorDetails: authorId, isReacted, ratingValue };
     });
 
     return {
@@ -132,7 +139,9 @@ exports.postReactionServices = async (req) => {
     }
 
     // Check feed exists
-    const feed = await Feed.findById(feedId);
+    const feed = await Feed.findById(feedId)
+      .populate("authorId", "name profile_image username email role")
+      .lean();
     if (!feed) {
       return {
         status: false,
@@ -155,7 +164,7 @@ exports.postReactionServices = async (req) => {
         status: true,
         statusCode: 200,
         message: "Reaction updated successfully",
-        data: {},
+        data: { ...feed, isReacted: true, ratingValue },
       };
     }
 
@@ -173,7 +182,7 @@ exports.postReactionServices = async (req) => {
       status: true,
       statusCode: 200,
       message: "Reaction added successfully",
-      data: {},
+      data: { ...feed, isReacted: true, ratingValue },
     };
   } catch (error) {
     return {
@@ -239,7 +248,7 @@ exports.getReactedFeedServices = async (req) => {
       },
       { $unwind: "$author" },
 
-      // Project feed at root
+      // Project feed at root + include rating
       {
         $replaceRoot: {
           newRoot: {
@@ -249,7 +258,7 @@ exports.getReactedFeedServices = async (req) => {
                 authorDetails: {
                   _id: "$author._id",
                   name: "$author.name",
-                  profile_image: { $ifNull: ["$author.profile_image", ""] }, // default to empty string
+                  profile_image: { $ifNull: ["$author.profile_image", ""] }, // default empty string
                   username: "$author.username",
                   email: "$author.email",
                   role: "$author.role",
@@ -257,6 +266,7 @@ exports.getReactedFeedServices = async (req) => {
                   about_company: "$author.about_company",
                 },
                 isReacted: true,
+                rating: "$ratingValue", // ✅ include rating value
               },
             ],
           },
