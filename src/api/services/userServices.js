@@ -233,7 +233,7 @@ exports.uploadServices = async (req, res) => {
       originalName: file.originalname,
       path: file.path,
       size: file.size,
-      url: `${baseUrl}/${file.filename}`, // ✅ return full URL
+      url: `${baseUrl}/${encodeURIComponent(file.filename)}`, // ✅ safe URL
     }));
 
     // Save in DB (optional)
