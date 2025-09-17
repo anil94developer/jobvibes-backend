@@ -1,8 +1,9 @@
 const mongoose = require("mongoose");
 
 const URL = process.env.MONGO_URI || "mongodb://localhost:27017/jobvibes";
-console.log("URL--", URL);
+
 mongoose.set("strictQuery", false);
+
 mongoose
   .connect(URL, {
     useUnifiedTopology: true,
@@ -12,16 +13,20 @@ mongoose
     console.log("---mongodb connection successfully---");
   })
   .catch((error) => {
-    console.log("---DB Connection ERROR--", error);
+    console.error("---DB Connection ERROR--", error);
   });
 
-function cleanup() {
-  mongoose.connection.close(function () {
-    console.log("Mongoose connection closed.");
+async function cleanup(signal) {
+  try {
+    await mongoose.connection.close();
+    console.log(`Mongoose connection closed due to ${signal}`);
     process.exit(0);
-  });
+  } catch (err) {
+    console.error("Error closing Mongoose connection:", err);
+    process.exit(1);
+  }
 }
 
-process.on("SIGINT", cleanup);
-process.on("exit", cleanup);
-process.on("SIGTERM", cleanup);
+process.on("SIGINT", () => cleanup("SIGINT"));
+process.on("SIGTERM", () => cleanup("SIGTERM"));
+process.on("exit", () => cleanup("exit"));
