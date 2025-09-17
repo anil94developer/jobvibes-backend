@@ -150,10 +150,11 @@ exports.postReactionServices = async (req) => {
       };
     }
 
-    // Check feed exists
-    const feed = await Feed.findById(feedId)
-      .populate("authorId", "name profile_image username email role")
-      .lean();
+    // Check feed exists (removed .lean())
+    const feed = await Feed.findById(feedId).populate(
+      "authorId",
+      "name profile_image username email role"
+    );
     if (!feed) {
       return {
         status: false,
@@ -163,10 +164,7 @@ exports.postReactionServices = async (req) => {
       };
     }
 
-    const reactionExist = await Reaction.findOne({
-      userId,
-      feedId,
-    });
+    const reactionExist = await Reaction.findOne({ userId, feedId });
 
     if (reactionExist) {
       reactionExist.ratingValue = ratingValue;
@@ -176,7 +174,7 @@ exports.postReactionServices = async (req) => {
         status: true,
         statusCode: 200,
         message: "Reaction updated successfully",
-        data: { ...feed, isReacted: true, ratingValue },
+        data: { ...feed.toObject(), isReacted: true, ratingValue },
       };
     }
 
@@ -194,7 +192,7 @@ exports.postReactionServices = async (req) => {
       status: true,
       statusCode: 200,
       message: "Reaction added successfully",
-      data: { ...feed, isReacted: true, ratingValue },
+      data: { ...feed.toObject(), isReacted: true, ratingValue },
     };
   } catch (error) {
     return {

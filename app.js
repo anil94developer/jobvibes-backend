@@ -1,9 +1,9 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const cors = require("cors");
 const router = require("./src/api/router");
 const path = require("path");
-require("dotenv").config();
 
 // Enable Cross-Origin Resource Sharing (CORS)
 app.use(cors());

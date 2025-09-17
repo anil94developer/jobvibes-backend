@@ -5,6 +5,15 @@ const File = require("../../models/fileSchema"); // import your File schema
 const Skill = require("../../models/skillsSchema");
 const { destructureUser } = require("../../utility/responseFormat");
 const notificationEmitter = require("../../emitter/notificationEmitter");
+const cloudinary = require("cloudinary").v2;
+const fs = require("fs");
+const CONSTANT = require("../../utility/constant");
+
+cloudinary.config({
+  cloud_name: CONSTANT.CLOUDINARY_CLOUD_NAME,
+  api_key: CONSTANT.CLOUDINARY_API_KEY,
+  api_secret: CONSTANT.CLOUDINARY_API_SECRET,
+});
 
 // --- Candidate step 1 Service ---
 exports.step1Services = async (req) => {
@@ -234,7 +243,8 @@ exports.step3Services = async (req) => {
   }
 };
 
-exports.uploadServices = async (req, res) => {
+// / --- Upload Service ---
+exports.uploadServices = async (req) => {
   try {
     if (!req.files || req.files.length === 0) {
       return {
@@ -245,31 +255,32 @@ exports.uploadServices = async (req, res) => {
       };
     }
 
-    // Build base URL (uses PORT / domain automatically)
-    const baseUrl = `${req.protocol}://${req.get("host")}/uploads`;
-    console.log("------ ~ baseUrl:------", baseUrl);
+    const uploads = await Promise.all(
+      req.files.map(async (file) => {
+        const result = await cloudinary.uploader.upload(file.path, {
+          resource_type: "auto",
+        });
 
-    // Map uploaded files
-    const filesToSave = req.files.map((file) => ({
-      filename: file.filename,
-      originalName: file.originalname,
-      path: file.path,
-      size: file.size,
-      url: `${baseUrl}/${encodeURIComponent(file.filename)}`, // ✅ safe URL
-    }));
+        fs.unlinkSync(file.path);
 
-    // Save in DB (optional)
-    const savedFiles = await File.insertMany(filesToSave);
-    console.log("------ ~ savedFiles:------", savedFiles);
+        return {
+          filename: file.filename,
+          originalName: file.originalname,
+          size: result.bytes,
+          url: result.secure_url,
+          public_id: result.public_id,
+        };
+      })
+    );
 
     return {
       status: true,
       statusCode: 200,
       message: "Files uploaded successfully",
-      data: savedFiles,
+      data: uploads,
     };
   } catch (error) {
-    console.error("An error occurred:", error);
+    console.error("Upload error:", error);
     return {
       status: false,
       statusCode: 500,
@@ -428,5 +439,18 @@ exports.updateProfileServices = async (req) => {
   } catch (error) {
     console.error("Error in updateProfileServices:", error);
     return { status: false, statusCode: 500, message: error.message, data: {} };
+  }
+};
+
+exports.getProfileServices = async (req) => {
+  try {
+    const { id } = req.params;
+    const profile = await User.findById(id);
+    if (!profile) {
+      throw new Error("Profile not found");
+    }
+    return { ...destructureUser(profile) };
+  } catch (err) {
+    throw err;
   }
 };

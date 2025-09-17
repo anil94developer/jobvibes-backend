@@ -12,6 +12,7 @@ const {
   uploadController,
   skillsController,
   updateController,
+  getProfileController,
 } = require("../../controllers/userController.js");
 const { authenticate } = require("../../middleware/authMiddleware");
 const {
@@ -57,5 +58,8 @@ router.post(
   upload.array("files", 5),
   uploadController
 );
+
+// Get user details by id
+router.get("/:id", authenticate, getProfileController);
 
 module.exports = router;
