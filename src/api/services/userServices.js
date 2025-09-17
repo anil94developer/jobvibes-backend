@@ -40,6 +40,15 @@ exports.step1Services = async (req) => {
       profile_image,
     });
 
+    if (!updateUser) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "User not found",
+        data: {},
+      };
+    }
+
     const session = await Session.create({
       user_id: userId,
       user_agent: userAgent,
@@ -449,7 +458,12 @@ exports.getProfileServices = async (req) => {
     if (!profile) {
       throw new Error("Profile not found");
     }
-    return { ...destructureUser(profile) };
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Profile data fetch successfully!!",
+      data: { ...destructureUser(updatedUser) },
+    };
   } catch (err) {
     throw err;
   }
