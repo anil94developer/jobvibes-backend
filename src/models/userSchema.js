@@ -69,8 +69,9 @@ const userSchema = new mongoose.Schema(
 
     // Candidate job preferences
     job_type: {
-      type: String,
+      type: [String], // 👈 array of strings
       enum: ["freelance", "full_time", "part_time"],
+      default: [],
     },
 
     // Employer-specific fields
