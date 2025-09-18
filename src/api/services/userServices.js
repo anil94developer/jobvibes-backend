@@ -303,23 +303,27 @@ exports.step3Services = async (req) => {
     // Build update object only with provided fields
     let updateFields = {};
     if (description) updateFields.description = description;
-    if (intro_video_url) updateFields.intro_video_url = intro_video_url;
+    if (intro_video_url) {
+      updateFields.intro_video_url = intro_video_url;
+      updateFields.status = "active"; // ✅ Set active if intro video exists
+    } else {
+      updateFields.status = "inactive"; // ✅ Force inactive if no video
+    }
     if (skip_step_3) updateFields.skip_step_3 = skip_step_3;
 
     // Update user
     const updateUser = await User.findByIdAndUpdate(userId, updateFields, {
       new: true,
     });
-    console.log("------ ~ updateUser:------", updateUser);
 
-    // Create session (optional for step-3, but keeping consistent)
-    const session = await Session.create({
+    // Create session
+    await Session.create({
       user_id: userId,
       user_agent: userAgent,
       ip,
     });
 
-    // post intro URL as feed
+    // Post intro video URL as feed (only if provided)
     if (intro_video_url) {
       const feed = await Feed.create({
         authorId: userId,
@@ -337,8 +341,6 @@ exports.step3Services = async (req) => {
         },
       });
     }
-
-    // Issue tokens
 
     return {
       status: true,

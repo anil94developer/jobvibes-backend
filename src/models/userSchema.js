@@ -87,6 +87,12 @@ const userSchema = new mongoose.Schema(
     fcm_token: {
       type: String,
     },
+    // 👇 New field
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "inactive",
+    },
   },
   { timestamps: true }
 );
