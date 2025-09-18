@@ -300,10 +300,6 @@ exports.step3Services = async (req) => {
       };
     }
 
-    if (skip_step_3) {
-      updateFields.skip_step_3 = skip_step_3;
-    }
-
     // Build update object only with provided fields
     let updateFields = {};
     if (description) updateFields.description = description;
