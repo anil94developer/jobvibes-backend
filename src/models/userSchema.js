@@ -79,6 +79,7 @@ const userSchema = new mongoose.Schema(
     company_address: { type: String },
     team_size: { type: Number, min: 1 }, // 👈 NEW
     position: { type: String }, // 👈 NEW
+    representative_role: { type: String },
 
     fcm_token: {
       type: String,

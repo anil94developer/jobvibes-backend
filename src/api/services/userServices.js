@@ -161,6 +161,7 @@ exports.step2Services = async (req) => {
         company_address,
         team_size,
         position,
+        representative_role,
       } = req.body;
 
       if (
@@ -168,13 +169,14 @@ exports.step2Services = async (req) => {
         !about_company ||
         !company_address ||
         !team_size ||
-        !position
+        !position ||
+        !representative_role
       ) {
         return {
           status: false,
           statusCode: 400,
           message:
-            "Employer must provide company_name, about_company, company_address, team_size, and position",
+            "Employer must provide company_name, about_company, company_address, team_size, representative_role  and position",
           data: {},
         };
       }
@@ -194,6 +196,7 @@ exports.step2Services = async (req) => {
         company_address: company_address.trim(),
         team_size: parseInt(team_size),
         position: position.trim(),
+        representative_role: representative_role.trim(),
       };
     } else if (user.role === "candidate") {
       const { skills, experience, qualifications, resume_url, job_type } =
