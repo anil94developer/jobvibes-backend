@@ -164,40 +164,43 @@ exports.step2Services = async (req) => {
         representative_role,
       } = req.body;
 
-      if (
-        !company_name ||
-        !about_company ||
-        !company_address
-        // !team_size ||
-        // !position ||
-        // !representative_role
-      ) {
+      // Required field validation
+      if (!company_name || !about_company || !company_address) {
         return {
           status: false,
           statusCode: 400,
           message:
-            "Employer must provide company_name, about_company, company_address",
+            "Employer must provide company_name, about_company, and company_address",
           data: {},
         };
       }
-
-      // if (isNaN(team_size) || parseInt(team_size) <= 0) {
-      //   return {
-      //     status: false,
-      //     statusCode: 400,
-      //     message: "Invalid team_size. Must be a positive number",
-      //     data: {},
-      //   };
-      // }
 
       updateFields = {
         company_name: company_name.trim(),
         about_company: about_company.trim(),
         company_address: company_address.trim(),
-        team_size: parseInt(team_size),
-        position: position.trim(),
-        representative_role: representative_role.trim(),
       };
+
+      // Optional fields (validate only if provided)
+      if (team_size) {
+        if (isNaN(team_size) || parseInt(team_size) <= 0) {
+          return {
+            status: false,
+            statusCode: 400,
+            message: "Invalid team_size. Must be a positive number",
+            data: {},
+          };
+        }
+        updateFields.team_size = parseInt(team_size);
+      }
+
+      if (position) {
+        updateFields.position = position.trim();
+      }
+
+      if (representative_role) {
+        updateFields.representative_role = representative_role.trim();
+      }
     } else if (user.role === "candidate") {
       const { skills, experience, qualifications, resume_url, job_type } =
         req.body;
