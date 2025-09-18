@@ -81,6 +81,9 @@ const userSchema = new mongoose.Schema(
     position: { type: String }, // 👈 NEW
     representative_role: { type: String },
 
+    // Step 3 fields
+    skip_step_3: { type: Boolean, default: false },
+
     fcm_token: {
       type: String,
     },

@@ -115,5 +115,9 @@ exports.getUserStepStatus = async (user) => {
     step3Completed = true;
   }
 
+  if (user.skip_step_3) {
+    step3Completed = true;
+  }
+
   return { step1Completed, step2Completed, step3Completed };
 };

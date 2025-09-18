@@ -289,7 +289,7 @@ exports.step3Services = async (req) => {
     const userId = req.user.sub;
     const userAgent = req.headers["user-agent"];
     const ip = req.ip;
-    const { description, intro_video_url } = req.body;
+    const { description, intro_video_url, skip_step_3 } = req.body;
 
     if (!userId) {
       return {
@@ -310,10 +310,15 @@ exports.step3Services = async (req) => {
       };
     }
 
+    if (skip_step_3) {
+      updateFields.skip_step_3 = skip_step_3;
+    }
+
     // Build update object only with provided fields
     let updateFields = {};
     if (description) updateFields.description = description;
     if (intro_video_url) updateFields.intro_video_url = intro_video_url;
+    if (skip_step_3) updateFields.skip_step_3 = skip_step_3;
 
     // Update user
     const updateUser = await User.findByIdAndUpdate(userId, updateFields, {
