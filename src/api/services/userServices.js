@@ -18,11 +18,12 @@ cloudinary.config({
 // --- Candidate step 1 Service ---
 exports.step1Services = async (req) => {
   try {
-    const userId = req.user.sub;
-    const userAgent = req.headers["user-agent"];
-    const ip = req.ip;
+    const userId = req.user?.sub;
+    const userAgent = req.headers["user-agent"] || "unknown";
+    const ip = req.ip || req.connection.remoteAddress;
     const { name, email, gender, role, profile_image } = req.body;
 
+    // Check if userId is present
     if (!userId) {
       return {
         status: false,
@@ -32,24 +33,82 @@ exports.step1Services = async (req) => {
       };
     }
 
-    const updateUser = await User.findByIdAndUpdate(userId, {
-      name,
-      email,
-      gender,
-      role,
-      profile_image,
+    // Validate role
+    const allowedRoles = ["candidate", "recruiter"];
+    if (!role || !allowedRoles.includes(role)) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "Invalid or missing role",
+        data: {},
+      };
+    }
+
+    // Validate email (basic format)
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "Invalid or missing email",
+        data: {},
+      };
+    }
+
+    // If candidate, require name and gender
+    if (role === "candidate") {
+      if (!name || typeof name !== "string" || name.trim().length < 2) {
+        return {
+          status: false,
+          statusCode: 400,
+          message: "Name is required and must be at least 2 characters",
+          data: {},
+        };
+      }
+
+      if (
+        !gender ||
+        !["male", "female", "other"].includes(gender.toLowerCase())
+      ) {
+        return {
+          status: false,
+          statusCode: 400,
+          message: "Invalid or missing gender",
+          data: {},
+        };
+      }
+    }
+
+    let updateFields = {};
+    if (role === "candidate") {
+      updateFields = {
+        name: name.trim(),
+        email: email.toLowerCase(),
+        gender: gender.toLowerCase(),
+        role,
+        profile_image,
+      };
+    } else {
+      updateFields = {
+        email: email.toLowerCase(),
+        role,
+        profile_image,
+      };
+    }
+
+    const updateUser = await User.findByIdAndUpdate(userId, updateFields, {
+      new: true,
     });
 
     if (!updateUser) {
       return {
         status: false,
-        statusCode: 400,
+        statusCode: 404,
         message: "User not found",
         data: {},
       };
     }
 
-    const session = await Session.create({
+    await Session.create({
       user_id: userId,
       user_agent: userAgent,
       ip,

@@ -42,7 +42,6 @@ const upload = multer({ storage });
 router.post(
   "/step-1",
   authenticate,
-  validatorResponse(step1Schema),
   step1Controller
 );
 router.post("/step-2", authenticate, step2Controller);
