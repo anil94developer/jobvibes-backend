@@ -167,16 +167,16 @@ exports.step2Services = async (req) => {
       if (
         !company_name ||
         !about_company ||
-        !company_address ||
-        !team_size ||
-        !position ||
-        !representative_role
+        !company_address
+        // !team_size ||
+        // !position ||
+        // !representative_role
       ) {
         return {
           status: false,
           statusCode: 400,
           message:
-            "Employer must provide company_name, about_company, company_address, team_size, representative_role  and position",
+            "Employer must provide company_name, about_company, company_address",
           data: {},
         };
       }

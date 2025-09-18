@@ -25,6 +25,9 @@ exports.destructureUser = (user) => {
     company_name,
     about_company,
     company_address,
+    team_size,
+    position,
+    representative_role,
   } = user;
 
   const baseData = {
@@ -57,6 +60,9 @@ exports.destructureUser = (user) => {
       company_name,
       about_company,
       company_address,
+      team_size,
+      position,
+      representative_role,
     };
   }
 
