@@ -204,16 +204,10 @@ exports.step2Services = async (req) => {
     } else if (user.role === "candidate") {
       const { skills, experience, qualifications, resume_url, job_type } =
         req.body;
+      console.log("------ ~ job_type:------", job_type);
       const allowedJobTypes = ["freelance", "full_time", "part_time"];
 
-      // Required fields
-      if (
-        !skills ||
-        !experience ||
-        !qualifications ||
-        !resume_url ||
-        !job_type
-      ) {
+      if (!skills || !resume_url || !job_type) {
         return {
           status: false,
           statusCode: 400,
@@ -223,17 +217,17 @@ exports.step2Services = async (req) => {
         };
       }
 
-      // ✅ Ensure job_type is an array
+      // ✅ Ensure job_type is an array of strings
       if (!Array.isArray(job_type) || job_type.length === 0) {
         return {
           status: false,
           statusCode: 400,
-          message: "job_type must be a non-empty array",
+          message: "job_type must be a non-empty array of strings",
           data: {},
         };
       }
 
-      // ✅ Validate each element
+      // ✅ Validate array values
       const invalidTypes = job_type.filter(
         (type) => !allowedJobTypes.includes(type)
       );
@@ -253,15 +247,7 @@ exports.step2Services = async (req) => {
         experience,
         qualifications,
         resume_url,
-        job_type,
-      };
-
-      updateFields = {
-        skills,
-        experience,
-        qualifications,
-        resume_url,
-        job_type,
+        job_type, // store as array
       };
     } else {
       return {
