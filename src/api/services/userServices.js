@@ -300,16 +300,6 @@ exports.step3Services = async (req) => {
       };
     }
 
-    // Validation: at least one field must be provided
-    if (!description && !intro_video_url) {
-      return {
-        status: false,
-        statusCode: 400,
-        message: "Either description or intro_video_url is required",
-        data: {},
-      };
-    }
-
     if (skip_step_3) {
       updateFields.skip_step_3 = skip_step_3;
     }
