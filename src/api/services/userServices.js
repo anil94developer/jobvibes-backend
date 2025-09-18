@@ -206,6 +206,7 @@ exports.step2Services = async (req) => {
         req.body;
       const allowedJobTypes = ["freelance", "full_time", "part_time"];
 
+      // Required fields
       if (
         !skills ||
         !experience ||
@@ -222,15 +223,38 @@ exports.step2Services = async (req) => {
         };
       }
 
-      if (!allowedJobTypes.includes(job_type)) {
+      // ✅ Ensure job_type is an array
+      if (!Array.isArray(job_type) || job_type.length === 0) {
         return {
           status: false,
           statusCode: 400,
-          message:
-            "Invalid job_type. Allowed values: freelance, full_time, part_time",
+          message: "job_type must be a non-empty array",
           data: {},
         };
       }
+
+      // ✅ Validate each element
+      const invalidTypes = job_type.filter(
+        (type) => !allowedJobTypes.includes(type)
+      );
+      if (invalidTypes.length > 0) {
+        return {
+          status: false,
+          statusCode: 400,
+          message: `Invalid job_type(s): ${invalidTypes.join(
+            ", "
+          )}. Allowed values: freelance, full_time, part_time`,
+          data: {},
+        };
+      }
+
+      updateFields = {
+        skills,
+        experience,
+        qualifications,
+        resume_url,
+        job_type,
+      };
 
       updateFields = {
         skills,
