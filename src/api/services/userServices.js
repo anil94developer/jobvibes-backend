@@ -34,7 +34,7 @@ exports.step1Services = async (req) => {
     }
 
     // Validate role
-    const allowedRoles = ["candidate", "recruiter"];
+    const allowedRoles = ["candidate", "employer"];
     if (!role || !allowedRoles.includes(role)) {
       return {
         status: false,
@@ -128,9 +128,9 @@ exports.step1Services = async (req) => {
 // --- Candidate step 2 Service ---
 exports.step2Services = async (req) => {
   try {
-    const userId = req.user.sub;
-    const userAgent = req.headers["user-agent"];
-    const ip = req.ip;
+    const userId = req.user?.sub;
+    const userAgent = req.headers["user-agent"] || "unknown";
+    const ip = req.ip || req.connection?.remoteAddress;
 
     if (!userId) {
       return {
@@ -142,24 +142,58 @@ exports.step2Services = async (req) => {
     }
 
     const user = await User.findById(userId);
+    if (!user) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found",
+        data: {},
+      };
+    }
 
     let updateFields = {};
+
     // Role-based validation
     if (user.role === "employer") {
-      const { company_name, about_company, company_address } = req.body;
-      if (!company_name || !about_company || !company_address) {
+      const {
+        company_name,
+        about_company,
+        company_address,
+        team_size,
+        position,
+      } = req.body;
+
+      if (
+        !company_name ||
+        !about_company ||
+        !company_address ||
+        !team_size ||
+        !position
+      ) {
         return {
           status: false,
           statusCode: 400,
           message:
-            "Employer must provide company_name, about_company, and company_address",
+            "Employer must provide company_name, about_company, company_address, team_size, and position",
           data: {},
         };
       }
+
+      if (isNaN(team_size) || parseInt(team_size) <= 0) {
+        return {
+          status: false,
+          statusCode: 400,
+          message: "Invalid team_size. Must be a positive number",
+          data: {},
+        };
+      }
+
       updateFields = {
-        company_name,
-        about_company,
-        company_address,
+        company_name: company_name.trim(),
+        about_company: about_company.trim(),
+        company_address: company_address.trim(),
+        team_size: parseInt(team_size),
+        position: position.trim(),
       };
     } else if (user.role === "candidate") {
       const { skills, experience, qualifications, resume_url, job_type } =
@@ -177,7 +211,7 @@ exports.step2Services = async (req) => {
           status: false,
           statusCode: 400,
           message:
-            "Candidate must provide skills, work_experience, qualification, resume, and job_type",
+            "Candidate must provide skills, experience, qualifications, resume_url, and job_type",
           data: {},
         };
       }
@@ -208,19 +242,28 @@ exports.step2Services = async (req) => {
       };
     }
 
-    // Update user with only allowed fields
+    // Update user with validated fields
     const updateUser = await User.findByIdAndUpdate(userId, updateFields, {
       new: true,
     });
 
+    if (!updateUser) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found during update",
+        data: {},
+      };
+    }
+
     // Create session
-    const session = await Session.create({
+    await Session.create({
       user_id: userId,
       user_agent: userAgent,
       ip,
     });
 
-    // Issue tokens
+    // TODO: Issue tokens if needed
 
     return {
       status: true,

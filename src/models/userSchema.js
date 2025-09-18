@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       default: null,
+      lowercase: true,
+      trim: true,
     },
     password: { type: String },
 
@@ -75,6 +77,8 @@ const userSchema = new mongoose.Schema(
     company_name: { type: String },
     about_company: { type: String },
     company_address: { type: String },
+    team_size: { type: Number, min: 1 }, // 👈 NEW
+    position: { type: String }, // 👈 NEW
 
     fcm_token: {
       type: String,
