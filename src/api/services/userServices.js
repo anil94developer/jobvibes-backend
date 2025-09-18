@@ -181,14 +181,14 @@ exports.step2Services = async (req) => {
         };
       }
 
-      if (isNaN(team_size) || parseInt(team_size) <= 0) {
-        return {
-          status: false,
-          statusCode: 400,
-          message: "Invalid team_size. Must be a positive number",
-          data: {},
-        };
-      }
+      // if (isNaN(team_size) || parseInt(team_size) <= 0) {
+      //   return {
+      //     status: false,
+      //     statusCode: 400,
+      //     message: "Invalid team_size. Must be a positive number",
+      //     data: {},
+      //   };
+      // }
 
       updateFields = {
         company_name: company_name.trim(),
