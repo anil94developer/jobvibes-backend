@@ -11,6 +11,8 @@ exports.destructureUser = (user) => {
     gender,
     name,
     profile_image,
+    status,
+    skip_step_3,
 
     // Candidate fields
     skills,
@@ -41,6 +43,7 @@ exports.destructureUser = (user) => {
     gender,
     intro_video_url,
     description,
+    status,
   };
 
   if (role === "candidate") {
