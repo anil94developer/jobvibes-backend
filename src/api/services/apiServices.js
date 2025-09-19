@@ -3,13 +3,45 @@ const Job = require("../../models/jobSchema");
 const Match = require("../../models/matchSchema");
 const Message = require("../../models/messageSchema");
 const State = require("../../models/stateSchema");
+const City = require("../../models/citySchema");
 
 exports.getStatesServices = async (req) => {
   try {
-    const states = await State.find();
+    const states = await State.find().select("name");
     return { status: true, message: "States list", data: states };
   } catch (error) {
     return { status: false, message: error.message, data: [] };
+  }
+};
+
+exports.getCitiesByStateServices = async (req, res) => {
+  try {
+    const { stateId } = req.params;
+
+    if (!stateId) {
+      return {
+        status: false,
+        message: "State ID is required",
+        data: {},
+      };
+    }
+
+    const cities = await City.find({ state: stateId })
+      .select("name")
+      .sort({ name: 1 });
+
+    return {
+      status: true,
+      message: "Cities fetched successfully",
+      data: cities,
+    };
+  } catch (err) {
+    console.error("Error fetching cities:", err);
+    return {
+      status: false,
+      message: "Failed to fetch cities",
+      error: err.message,
+    };
   }
 };
 

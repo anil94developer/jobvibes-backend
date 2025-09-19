@@ -21,13 +21,14 @@ const {
   sendMessageController,
   listMessagesByMatchController,
   getStatesController,
+  getCitiesByStateController,
 } = require("../controllers/apiController");
 
 // States
 router.get("/states", getStatesController);
 
 // Cities
-// router.get("/cities", getCitiesController);
+router.get("/states/:stateId/cities", getCitiesByStateController);
 
 // Jobs
 router.post("/jobs", validatorResponse(createJobSchema), createJobController);
