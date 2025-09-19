@@ -4,6 +4,11 @@ const app = express();
 const cors = require("cors");
 const router = require("./src/api/router");
 const path = require("path");
+const mongoose = require("mongoose");
+
+// Models
+const State = require("./src/models/stateSchema");
+const City = require("./src/models/citySchema");
 
 // Enable Cross-Origin Resource Sharing (CORS)
 app.use(cors());

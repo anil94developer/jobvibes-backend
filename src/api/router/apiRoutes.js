@@ -5,25 +5,49 @@ const router = express.Router();
 const validatorResponse = require("../../utility/joiValidator");
 
 //schemas
-const {  createJobSchema, createMatchSchema, sendMessageSchema } = require("../validationSchema/apiValidationSchema");
-
+const {
+  createJobSchema,
+  createMatchSchema,
+  sendMessageSchema,
+} = require("../validationSchema/apiValidationSchema");
 
 //controller
-const {  createJobController, getJobController, searchJobsController, createMatchController, listMatchesByCandidateController, sendMessageController, listMessagesByMatchController } = require("../controllers/apiController");
+const {
+  createJobController,
+  getJobController,
+  searchJobsController,
+  createMatchController,
+  listMatchesByCandidateController,
+  sendMessageController,
+  listMessagesByMatchController,
+  getStatesController,
+} = require("../controllers/apiController");
 
+// States
+router.get("/states", getStatesController);
+
+// Cities
+// router.get("/cities", getCitiesController);
 
 // Jobs
-router.post('/jobs', validatorResponse(createJobSchema), createJobController);
-router.get('/jobs/:id', getJobController);
-router.get('/jobs', searchJobsController);
+router.post("/jobs", validatorResponse(createJobSchema), createJobController);
+router.get("/jobs/:id", getJobController);
+router.get("/jobs", searchJobsController);
 
 // Matches
-router.post('/matches', validatorResponse(createMatchSchema), createMatchController);
-router.get('/matches/candidate/:id', listMatchesByCandidateController);
+router.post(
+  "/matches",
+  validatorResponse(createMatchSchema),
+  createMatchController
+);
+router.get("/matches/candidate/:id", listMatchesByCandidateController);
 
 // Messages
-router.post('/messages', validatorResponse(sendMessageSchema), sendMessageController);
-router.get('/messages/match/:id', listMessagesByMatchController);
+router.post(
+  "/messages",
+  validatorResponse(sendMessageSchema),
+  sendMessageController
+);
+router.get("/messages/match/:id", listMessagesByMatchController);
 
-
-module.exports = router;    
+module.exports = router;

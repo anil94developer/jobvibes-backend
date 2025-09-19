@@ -92,7 +92,7 @@ exports.getUserStepStatus = async (user) => {
   if (!user) return { step1Completed, step2Completed, step3Completed };
 
   // Step 1: basic info
-  if (user.name && user.role) step1Completed = true;
+  if (user.email && user.role) step1Completed = true;
 
   // Step 2: role-specific info
   if (
