@@ -22,6 +22,7 @@ const {
   listMessagesByMatchController,
   getStatesController,
   getCitiesByStateController,
+  getJobTitleController,
 } = require("../controllers/apiController");
 
 // States
@@ -29,6 +30,9 @@ router.get("/states", getStatesController);
 
 // Cities
 router.get("/states/:stateId/cities", getCitiesByStateController);
+
+// Job title
+router.get("/job-titles", getJobTitleController);
 
 // Jobs
 router.post("/jobs", validatorResponse(createJobSchema), createJobController);

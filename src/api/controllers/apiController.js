@@ -14,6 +14,7 @@ const {
   listMessagesByMatchService,
   getStatesServices,
   getCitiesByStateServices,
+  getJobTitleServices,
 } = require("../services/apiServices");
 
 exports.createUserController = async (req, res, next) => {
@@ -188,6 +189,18 @@ exports.getCitiesByStateController = async (req, res, next) => {
   try {
     console.log("Request parameters in get States API controller:--");
     const data = await getCitiesByStateServices(req);
+    res.send(data);
+    console.log("Response parameters in get States API controller:--", data);
+  } catch (error) {
+    console.log("Error in get States API controller:--", error);
+    next(error);
+  }
+};
+
+exports.getJobTitleController = async (req, res, next) => {
+  try {
+    console.log("Request parameters in get States API controller:--");
+    const data = await getJobTitleServices(req);
     res.send(data);
     console.log("Response parameters in get States API controller:--", data);
   } catch (error) {
