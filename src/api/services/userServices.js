@@ -159,18 +159,26 @@ exports.step2Services = async (req) => {
         company_name,
         about_company,
         company_address,
+        state,
+        city,
         team_size,
         position,
         representative_role,
       } = req.body;
 
       // Required field validation
-      if (!company_name || !about_company || !company_address) {
+      if (
+        !company_name ||
+        !about_company ||
+        !company_address ||
+        !state ||
+        !city
+      ) {
         return {
           status: false,
           statusCode: 400,
           message:
-            "Employer must provide company_name, about_company, and company_address",
+            "Employer must provide company_name, about_company, company_address, state, and city",
           data: {},
         };
       }
@@ -179,6 +187,8 @@ exports.step2Services = async (req) => {
         company_name: company_name.trim(),
         about_company: about_company.trim(),
         company_address: company_address.trim(),
+        state: state.trim(),
+        city: city.trim(),
       };
 
       // Optional fields (validate only if provided)
@@ -204,7 +214,6 @@ exports.step2Services = async (req) => {
     } else if (user.role === "candidate") {
       const { skills, experience, qualifications, resume_url, job_type } =
         req.body;
-      console.log("------ ~ job_type:------", job_type);
       const allowedJobTypes = ["freelance", "full_time", "part_time"];
 
       if (!skills || !resume_url || !job_type) {
@@ -334,23 +343,23 @@ exports.step3Services = async (req) => {
     });
 
     // Post intro video URL as feed (only if provided)
-    if (intro_video_url) {
-      const feed = await Feed.create({
-        authorId: userId,
-        media: [intro_video_url],
-      });
+    // if (intro_video_url) {
+    //   const feed = await Feed.create({
+    //     authorId: userId,
+    //     media: [intro_video_url],
+    //   });
 
-      notificationEmitter.emit("sendNotification", {
-        title: "New Feed",
-        body: "New video available!",
-        token: updateUser.fcm_token,
-        posted_by: userId,
-        data: {
-          type: "feed",
-          feedId: feed._id,
-        },
-      });
-    }
+    //   notificationEmitter.emit("sendNotification", {
+    //     title: "New Feed",
+    //     body: "New video available!",
+    //     token: updateUser.fcm_token,
+    //     posted_by: userId,
+    //     data: {
+    //       type: "feed",
+    //       feedId: feed._id,
+    //     },
+    //   });
+    // }
 
     return {
       status: true,

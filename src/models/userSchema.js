@@ -77,6 +77,8 @@ const userSchema = new mongoose.Schema(
     // Employer-specific fields
     company_name: { type: String },
     about_company: { type: String },
+    state: { type: String },
+    city: { type: String },
     company_address: { type: String },
     team_size: { type: Number, min: 1 }, // 👈 NEW
     position: { type: String }, // 👈 NEW
