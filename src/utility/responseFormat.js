@@ -33,7 +33,7 @@ exports.destructureUser = (user) => {
   } = user;
 
   const baseData = {
-    id: _id,
+    id: _id?.toString(), // 👈 ensure string
     user_name,
     name,
     profile_image,
@@ -44,6 +44,7 @@ exports.destructureUser = (user) => {
     intro_video_url,
     description,
     status,
+    skip_step_3,
   };
 
   if (role === "candidate") {
