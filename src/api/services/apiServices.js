@@ -5,6 +5,7 @@ const Message = require("../../models/messageSchema");
 const State = require("../../models/stateSchema");
 const City = require("../../models/citySchema");
 const JobTitle = require("../../models/jobTitleSchema");
+const { getPaginatedResults } = require("../../utility/paginate");
 
 exports.getStatesServices = async (req) => {
   try {
@@ -15,27 +16,32 @@ exports.getStatesServices = async (req) => {
   }
 };
 
-exports.getCitiesByStateServices = async (req, res) => {
+exports.getCitiesByStateServices = async (req) => {
   try {
     const { stateId } = req.params;
+    const { page = 1, limit = 10, search = "" } = req.query;
 
     if (!stateId) {
       return {
         status: false,
         message: "State ID is required",
-        data: {},
+        data: [],
       };
     }
 
-    const cities = await City.find({ state: stateId })
-      .select("name")
-      .sort({ name: 1 });
-
-    return {
-      status: true,
-      message: "Cities fetched successfully",
-      data: cities,
+    // Build filter
+    const filter = {
+      state: stateId,
+      ...(search ? { name: { $regex: search, $options: "i" } } : {}),
     };
+
+    // Use common pagination
+    return await getPaginatedResults(City, filter, {
+      page,
+      limit,
+      sort: { name: 1 }, // alphabetical
+      select: "name",
+    });
   } catch (err) {
     console.error("Error fetching cities:", err);
     return {
@@ -48,36 +54,17 @@ exports.getCitiesByStateServices = async (req, res) => {
 
 exports.getJobTitleServices = async (req) => {
   try {
-    // Extract query params (defaults set if not provided)
     const { search = "", page = 1, limit = 10 } = req.query;
 
-    // Search filter
     const filter = search ? { name: { $regex: search, $options: "i" } } : {};
 
-    // Pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    // Fetch jobs with filter, sort, pagination
-    const jobs = await JobTitle.find(filter)
-      .select("name")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    // Count total for pagination info
-    const total = await JobTitle.countDocuments(filter);
-
-    return {
-      status: true,
-      message: "Jobs list",
-      data: jobs,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
-      },
-    };
+    // Call common pagination utility
+    return await getPaginatedResults(JobTitle, filter, {
+      page,
+      limit,
+      sort: { name: 1 }, // sort alphabetically
+      select: "name",
+    });
   } catch (error) {
     return { status: false, message: error.message, data: [] };
   }
