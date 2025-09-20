@@ -187,12 +187,12 @@ exports.getStatesController = async (req, res, next) => {
 
 exports.getCitiesByStateController = async (req, res, next) => {
   try {
-    console.log("Request parameters in get States API controller:--");
+    console.log("Request parameters in get city API controller:--");
     const data = await getCitiesByStateServices(req);
     res.send(data);
-    console.log("Response parameters in get States API controller:--", data);
+    console.log("Response parameters in get city API controller:--", data);
   } catch (error) {
-    console.log("Error in get States API controller:--", error);
+    console.log("Error in get city API controller:--", error);
     next(error);
   }
 };
