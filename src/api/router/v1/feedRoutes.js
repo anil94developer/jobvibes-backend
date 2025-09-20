@@ -15,7 +15,8 @@ const {
   getReactedController,
 } = require("../../controllers/feedController");
 
-router.get("/", authenticate, getFeedController);
+// Get all post
+router.post("/", authenticate, getFeedController);
 
 // Route to post a new feed
 router.post(

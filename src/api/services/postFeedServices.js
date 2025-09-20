@@ -76,30 +76,40 @@ exports.postFeedServices = async (req) => {
   }
 };
 
-// --- getFeed Service ---
+// --- getFeed Service (POST API) ---
 exports.getFeedServices = async (req) => {
   try {
     const currentUserId = req.user.sub;
     const {
+      search,
+      state = [],
+      city = [],
+      job_title = [],
+      job_type = [],
       page = 1,
       limit = 10,
-      search,
-      state,
-      city,
-      job_title,
-      job_type,
-    } = req.query;
+    } = req.body; // ✅ now from body
+
+    // Ensure all filters are arrays
+    const stateArr = Array.isArray(state) ? state : [state].filter(Boolean);
+    const cityArr = Array.isArray(city) ? city : [city].filter(Boolean);
+    const jobTitleArr = Array.isArray(job_title)
+      ? job_title
+      : [job_title].filter(Boolean);
+    const jobTypeArr = Array.isArray(job_type)
+      ? job_type
+      : [job_type].filter(Boolean);
 
     // Build filters
-    const filter = {};
+    const filter = {
+      authorId: { $ne: currentUserId }, // 🚫 exclude logged-in user's posts
+    };
 
-    if (search) {
-      filter.$or = [{ content: { $regex: search, $options: "i" } }];
-    }
-    if (state) filter.state = { $in: state.split(",") };
-    if (city) filter.cities = { $in: city.split(",") };
-    if (job_title) filter.job_title = { $in: job_title.split(",") };
-    if (job_type) filter.job_type = { $in: job_type.split(",") };
+    if (search) filter.$or = [{ content: { $regex: search, $options: "i" } }];
+    if (stateArr.length) filter.state = { $in: stateArr };
+    if (cityArr.length) filter.cities = { $in: cityArr };
+    if (jobTitleArr.length) filter.job_title = { $in: jobTitleArr };
+    if (jobTypeArr.length) filter.job_type = { $in: jobTypeArr };
 
     // ✅ Use common pagination
     const paginated = await getPaginatedResults(Feed, filter, {

@@ -1,6 +1,7 @@
 const User = require("../../models/userSchema");
 const Session = require("../../models/sessionSchema");
 const Feed = require("../../models/feedSchema");
+const Reaction = require("../../models/reactionSchema");
 const File = require("../../models/fileSchema"); // import your File schema
 const Skill = require("../../models/skillsSchema");
 const { destructureUser } = require("../../utility/responseFormat");
@@ -8,6 +9,7 @@ const notificationEmitter = require("../../emitter/notificationEmitter");
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
 const CONSTANT = require("../../utility/constant");
+const { getPaginatedResults } = require("../../utility/paginate");
 
 cloudinary.config({
   cloud_name: CONSTANT.CLOUDINARY_CLOUD_NAME,
@@ -572,12 +574,14 @@ exports.getProfileServices = async (req) => {
 
 exports.getUserFeedServices = async (req) => {
   try {
-    const { id } = req.params; // userId whose feeds we need
+    const { userId } = req.params; // userId whose feeds we need
+    console.log("------ ~ userId:------", userId);
     const { page = 1, limit = 10 } = req.query;
     const currentUserId = req.user.sub;
 
     // ✅ Check if profile exists
-    const profile = await User.findById(id);
+    const profile = await User.findById(userId);
+    console.log("------ ~ profile:------", profile);
     if (!profile) {
       return {
         status: false,
@@ -590,7 +594,7 @@ exports.getUserFeedServices = async (req) => {
     // ✅ Get feeds for that user with pagination
     const paginated = await getPaginatedResults(
       Feed,
-      { authorId: id }, // filter: only this user’s feeds
+      { authorId: userId }, // filter: only this user’s feeds
       {
         page,
         limit,
