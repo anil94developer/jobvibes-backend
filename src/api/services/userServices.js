@@ -342,25 +342,6 @@ exports.step3Services = async (req) => {
       ip,
     });
 
-    // Post intro video URL as feed (only if provided)
-    // if (intro_video_url) {
-    //   const feed = await Feed.create({
-    //     authorId: userId,
-    //     media: [intro_video_url],
-    //   });
-
-    //   notificationEmitter.emit("sendNotification", {
-    //     title: "New Feed",
-    //     body: "New video available!",
-    //     token: updateUser.fcm_token,
-    //     posted_by: userId,
-    //     data: {
-    //       type: "feed",
-    //       feedId: feed._id,
-    //     },
-    //   });
-    // }
-
     return {
       status: true,
       statusCode: 201,

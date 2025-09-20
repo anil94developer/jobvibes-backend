@@ -4,6 +4,7 @@ const User = require("../../models/userSchema");
 const Feed = require("../../models/feedSchema");
 const Reaction = require("../../models/reactionSchema");
 const notificationEmitter = require("../../emitter/notificationEmitter");
+const { getPaginatedResults } = require("../../utility/paginate");
 
 // --- postFeed Profile Service ---
 exports.postFeedServices = async (req) => {
@@ -48,7 +49,7 @@ exports.postFeedServices = async (req) => {
     };
 
     // ✅ 5. Send notification
-    notificationEmitter.emit("sendNotification", {
+    notificationEmitter.emit("sendFeedNotification", {
       title: "New Feed",
       body: content ? content.substring(0, 100) : "New post available!",
       token: user.fcm_token,
@@ -78,46 +79,62 @@ exports.postFeedServices = async (req) => {
 // --- getFeed Service ---
 exports.getFeedServices = async (req) => {
   try {
-    const currentUserId = req.user.sub; // current logged-in user
-    const { page = 1, limit = 10, search } = req.query;
-    const skip = (page - 1) * limit;
+    const currentUserId = req.user.sub;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      state,
+      city,
+      job_title,
+      job_type,
+    } = req.query;
 
-    // Build query
-    const query = {};
+    // Build filters
+    const filter = {};
+
     if (search) {
-      query.$or = [{ content: { $regex: search, $options: "i" } }];
+      filter.$or = [{ content: { $regex: search, $options: "i" } }];
     }
+    if (state) filter.state = { $in: state.split(",") };
+    if (city) filter.cities = { $in: city.split(",") };
+    if (job_title) filter.job_title = { $in: job_title.split(",") };
+    if (job_type) filter.job_type = { $in: job_type.split(",") };
 
-    const feeds = await Feed.find(query)
-      .sort({ createdAt: -1 })
-      .skip(parseInt(skip))
-      .limit(parseInt(limit))
-      .populate(
-        "authorId",
-        "name profile_image username email role company_name about_company"
-      )
-      .lean();
+    // ✅ Use common pagination
+    const paginated = await getPaginatedResults(Feed, filter, {
+      page,
+      limit,
+      sort: { createdAt: -1 },
+      populate: {
+        path: "authorId",
+        select:
+          "name profile_image username email role company_name about_company",
+      },
+      lean: true,
+    });
 
-    // Get all feed IDs from result
+    if (!paginated.status) return paginated;
+
+    const feeds = paginated.data.results;
     const feedIds = feeds.map((f) => f._id);
 
-    // Find all reactions for current user on these feeds
+    // Get reactions by current user
     const userReactions = await Reaction.find({
       userId: currentUserId,
       feedId: { $in: feedIds },
     }).lean();
 
-    // Map reactions by feedId for quick lookup
     const reactionMap = {};
     userReactions.forEach((r) => {
-      reactionMap[r.feedId.toString()] = r; // store full reaction
+      reactionMap[r.feedId.toString()] = r;
     });
 
-    // Transform feeds with isReacted + rating
+    // Attach extras
     const feedsWithExtras = feeds.map((feed) => {
       const reaction = reactionMap[feed._id.toString()];
       const isReacted = !!reaction;
-      const ratingValue = reaction ? reaction.ratingValue : 0; // ✅ include rating
+      const ratingValue = reaction ? reaction.ratingValue : 0;
       const { authorId, ...rest } = feed;
 
       return { ...rest, authorDetails: authorId, isReacted, ratingValue };
@@ -127,14 +144,17 @@ exports.getFeedServices = async (req) => {
       status: true,
       statusCode: 200,
       message: "Feeds fetched successfully",
-      data: feedsWithExtras,
+      data: {
+        feeds: feedsWithExtras,
+        pagination: paginated.data.pagination,
+      },
     };
-  } catch (error) {
+  } catch (err) {
     return {
       status: false,
       statusCode: 500,
       message: "Error fetching feeds",
-      data: { error: error.message },
+      data: { error: err.message },
     };
   }
 };
@@ -142,10 +162,10 @@ exports.getFeedServices = async (req) => {
 exports.postReactionServices = async (req) => {
   try {
     const userId = req.user.sub;
-    const { feedId } = req.params;
+    const { jobId } = req.params;
     const { type, ratingValue } = req.body;
 
-    // Check user exists
+    // ✅ Check user exists
     const user = await User.findById(userId);
     if (!user) {
       return {
@@ -156,10 +176,10 @@ exports.postReactionServices = async (req) => {
       };
     }
 
-    // Check feed exists (removed .lean())
-    const feed = await Feed.findById(feedId).populate(
+    // ✅ Check feed exists
+    const feed = await Feed.findById(jobId).populate(
       "authorId",
-      "name profile_image username email role"
+      "name profile_image username email role fcm_token"
     );
     if (!feed) {
       return {
@@ -170,7 +190,18 @@ exports.postReactionServices = async (req) => {
       };
     }
 
-    const reactionExist = await Reaction.findOne({ userId, feedId });
+    // 🚫 Prevent user from reacting to their own feed
+    if (feed.authorId._id.toString() === userId.toString()) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "You cannot react to your own post",
+        data: {},
+      };
+    }
+
+    // ✅ Check if reaction exists
+    const reactionExist = await Reaction.findOne({ userId, feedId: jobId });
 
     if (reactionExist) {
       reactionExist.ratingValue = ratingValue;
@@ -184,15 +215,24 @@ exports.postReactionServices = async (req) => {
       };
     }
 
+    // ✅ Create new reaction
     await Reaction.create({
       userId,
-      feedId,
+      feedId: jobId,
       type,
       ratingValue,
     });
 
     feed.noOfReactions += 1;
     await feed.save();
+
+    // 🔔 Send notification to feed author
+    notificationEmitter.emit("sendUserNotification", {
+      title: "New Feed Reaction",
+      body: `${user.name} rated your feed.`,
+      posted_by: feed.authorId._id,
+      data: { type: "reaction", feedId: feed._id.toString() },
+    });
 
     return {
       status: true,
