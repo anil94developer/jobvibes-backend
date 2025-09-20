@@ -9,9 +9,10 @@ const notificationEmitter = require("../../emitter/notificationEmitter");
 exports.postFeedServices = async (req) => {
   try {
     const userId = req.user.sub;
-    const { content, media } = req.body;
+    const { content, media, job_title, work_place_name, job_type, cities } =
+      req.body;
 
-    // Check user exists
+    // ✅ 1. Check user exists
     const user = await User.findById(userId);
     if (!user) {
       return {
@@ -22,19 +23,23 @@ exports.postFeedServices = async (req) => {
       };
     }
 
-    // Create feed
+    // ✅ 2. Create feed
     const feed = await Feed.create({
       authorId: userId,
       content,
       media,
+      job_title,
+      work_place_name,
+      job_type,
+      cities,
     });
 
-    // Populate author details
+    // ✅ 3. Populate author details
     const populatedFeed = await Feed.findById(feed._id)
       .populate("authorId", "name profile_image username email role")
       .lean();
 
-    // Rename authorId -> authorDetails & add isReacted
+    // ✅ 4. Rename authorId -> authorDetails & add isReacted
     const { authorId, ...rest } = populatedFeed;
     const feedResponse = {
       ...rest,
@@ -42,9 +47,10 @@ exports.postFeedServices = async (req) => {
       isReacted: false, // just created, current user hasn't reacted yet
     };
 
+    // ✅ 5. Send notification
     notificationEmitter.emit("sendNotification", {
       title: "New Feed",
-      body: "New video available!",
+      body: content ? content.substring(0, 100) : "New post available!",
       token: user.fcm_token,
       posted_by: user._id,
       data: {

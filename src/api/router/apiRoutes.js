@@ -34,25 +34,4 @@ router.get("/states/:stateId/cities", getCitiesByStateController);
 // Job title
 router.get("/job-titles", getJobTitleController);
 
-// Jobs
-router.post("/jobs", validatorResponse(createJobSchema), createJobController);
-router.get("/jobs/:id", getJobController);
-router.get("/jobs", searchJobsController);
-
-// Matches
-router.post(
-  "/matches",
-  validatorResponse(createMatchSchema),
-  createMatchController
-);
-router.get("/matches/candidate/:id", listMatchesByCandidateController);
-
-// Messages
-router.post(
-  "/messages",
-  validatorResponse(sendMessageSchema),
-  sendMessageController
-);
-router.get("/messages/match/:id", listMessagesByMatchController);
-
 module.exports = router;

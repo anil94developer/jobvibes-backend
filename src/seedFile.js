@@ -1,6 +1,8 @@
+// seeder/stateCitySeeder.js
 const mongoose = require("mongoose");
-const JobTitle = require("./models/jobTitleSchema");
-const jobTitles = require("./seeder/jobTitlesSeed");
+const State = require("../src/models/stateSchema");
+const City = require("../src/models/citySchema");
+const { citiesByState } = require("./seeder/citiesByState");
 
 require("dotenv").config();
 
@@ -12,12 +14,25 @@ mongoose
   .then(async () => {
     console.log("Connected to DB");
 
-    await JobTitle.deleteMany({});
-    console.log("Old job titles removed");
+    // Clear old data
+    await State.deleteMany({});
+    await City.deleteMany({});
+    console.log("Old states and cities removed");
 
-    await JobTitle.insertMany(jobTitles);
-    console.log("Job titles seeded successfully!");
+    // Insert states and cities
+    for (const [stateName, cities] of Object.entries(citiesByState)) {
+      const state = await State.create({ name: stateName });
 
+      const cityDocs = cities.map((city) => ({
+        name: city,
+        state: state._id,
+      }));
+
+      await City.insertMany(cityDocs);
+      console.log(`Inserted ${cities.length} cities for ${stateName}`);
+    }
+
+    console.log("Seeding completed!");
     process.exit();
   })
   .catch((err) => {
