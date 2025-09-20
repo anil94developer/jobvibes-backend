@@ -569,3 +569,84 @@ exports.getProfileServices = async (req) => {
     throw err;
   }
 };
+
+exports.getUserFeedServices = async (req) => {
+  try {
+    const { id } = req.params; // userId whose feeds we need
+    const { page = 1, limit = 10 } = req.query;
+    const currentUserId = req.user.sub;
+
+    // ✅ Check if profile exists
+    const profile = await User.findById(id);
+    if (!profile) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "Profile not found",
+        data: {},
+      };
+    }
+
+    // ✅ Get feeds for that user with pagination
+    const paginated = await getPaginatedResults(
+      Feed,
+      { authorId: id }, // filter: only this user’s feeds
+      {
+        page,
+        limit,
+        sort: { createdAt: -1 },
+        populate: {
+          path: "authorId",
+          select:
+            "name profile_image username email role company_name about_company",
+        },
+        lean: true,
+      }
+    );
+
+    if (!paginated.status) return paginated;
+
+    const feeds = paginated.data.results || [];
+    const feedIds = feeds.map((f) => f._id);
+
+    // ✅ Check if current user reacted to these feeds
+    const userReactions = await Reaction.find({
+      userId: currentUserId,
+      feedId: { $in: feedIds },
+    }).lean();
+
+    const reactionMap = {};
+    userReactions.forEach((r) => {
+      reactionMap[r.feedId.toString()] = r;
+    });
+
+    // ✅ Transform feeds with extra info
+    const feedsWithExtras = feeds.map((feed) => {
+      const reaction = reactionMap[feed._id.toString()];
+      const isReacted = !!reaction;
+      const ratingValue = reaction ? reaction.ratingValue : 0;
+      const { authorId, ...rest } = feed;
+
+      return { ...rest, authorDetails: authorId, isReacted, ratingValue };
+    });
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Profile feeds fetched successfully",
+      data: {
+        profile: destructureUser(profile),
+        feeds: feedsWithExtras,
+        pagination: paginated.data.pagination,
+      },
+    };
+  } catch (err) {
+    console.error("❌ Error in getFeedServices:", err);
+    return {
+      status: false,
+      statusCode: 500,
+      message: "Error fetching profile feeds",
+      data: { error: err.message },
+    };
+  }
+};

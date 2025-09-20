@@ -13,6 +13,7 @@ const {
   skillsController,
   updateController,
   getProfileController,
+  getFeedController,
 } = require("../../controllers/userController.js");
 const { authenticate } = require("../../middleware/authMiddleware");
 const {
@@ -39,11 +40,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.post(
-  "/step-1",
-  authenticate,
-  step1Controller
-);
+router.post("/step-1", authenticate, step1Controller);
 router.post("/step-2", authenticate, step2Controller);
 router.post("/step-3", authenticate, step3Controller);
 
@@ -60,5 +57,7 @@ router.post(
 
 // Get user details by id
 router.get("/:id", authenticate, getProfileController);
+
+router.get("/:userId/post", authenticate, getFeedController);
 
 module.exports = router;
