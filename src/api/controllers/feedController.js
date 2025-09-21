@@ -4,6 +4,7 @@ const {
   getFeedServices,
   postReactionServices,
   getReactedFeedServices,
+  getExploreFeedServices,
 } = require("../services/postFeedServices");
 
 exports.postFeedController = async (req, res, next) => {
@@ -26,6 +27,18 @@ exports.getFeedController = async (req, res, next) => {
     console.log("Response in getFeedController:--", data);
   } catch (error) {
     console.log("Error in getFeedController:--", error);
+    next(error);
+  }
+};
+
+exports.getExploreFeedController = async (req, res, next) => {
+  try {
+    console.log("Request body in getExploreFeedController:--", req.body);
+    const data = await getExploreFeedServices(req);
+    sendResponse(res, data);
+    console.log("Response in getExploreFeedController:--", data);
+  } catch (error) {
+    console.log("Error in getExploreFeedController:--", error);
     next(error);
   }
 };

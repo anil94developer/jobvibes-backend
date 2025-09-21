@@ -13,10 +13,14 @@ const {
   getFeedController,
   postReactionController,
   getReactedController,
+  getExploreFeedController,
 } = require("../../controllers/feedController");
 
 // Get all post
 router.post("/", authenticate, getFeedController);
+
+// Explore Feeds
+router.post("/explore", authenticate, getExploreFeedController);
 
 // Route to post a new feed
 router.post(

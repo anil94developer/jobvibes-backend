@@ -10,8 +10,16 @@ const { getPaginatedResults } = require("../../utility/paginate");
 exports.postFeedServices = async (req) => {
   try {
     const userId = req.user.sub;
-    const { content, media, job_title, work_place_name, job_type, cities } =
-      req.body;
+    const {
+      content,
+      media,
+      job_title,
+      work_place_name,
+      job_type,
+      cities,
+      notice_period,
+      is_immediate_joiner,
+    } = req.body;
 
     // ✅ 1. Check user exists
     const user = await User.findById(userId);
@@ -34,6 +42,8 @@ exports.postFeedServices = async (req) => {
       work_place_name,
       job_type,
       cities,
+      notice_period,
+      is_immediate_joiner,
     });
 
     // ✅ 3. Populate author details
@@ -126,6 +136,113 @@ exports.getFeedServices = async (req) => {
     } else if (currentRole === "candidate") {
       filter.authorRole = "employer";
     }
+
+    // Additional filters
+    if (search) filter.$or = [{ content: { $regex: search, $options: "i" } }];
+    if (stateArr.length) filter.state = { $in: stateArr };
+    if (cityArr.length) filter.cities = { $in: cityArr };
+    if (jobTitleArr.length) filter.job_title = { $in: jobTitleArr };
+    if (jobTypeArr.length) filter.job_type = { $in: jobTypeArr };
+
+    // ✅ Use common pagination
+    const paginated = await getPaginatedResults(Feed, filter, {
+      page,
+      limit,
+      sort: { createdAt: -1 },
+      populate: {
+        path: "authorId",
+        select:
+          "name profile_image username email role company_name about_company",
+      },
+      lean: true,
+    });
+
+    if (!paginated.status) return paginated;
+
+    const feeds = paginated.data.results;
+    const feedIds = feeds.map((f) => f._id);
+
+    // Get reactions by current user
+    const userReactions = await Reaction.find({
+      userId: currentUserId,
+      feedId: { $in: feedIds },
+    }).lean();
+
+    const reactionMap = {};
+    userReactions.forEach((r) => {
+      reactionMap[r.feedId.toString()] = r;
+    });
+
+    // Attach extras
+    const feedsWithExtras = feeds.map((feed) => {
+      const reaction = reactionMap[feed._id.toString()];
+      const isReacted = !!reaction;
+      const ratingValue = reaction ? reaction.ratingValue : 0;
+      const { authorId, ...rest } = feed;
+
+      return { ...rest, authorDetails: authorId, isReacted, ratingValue };
+    });
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Feeds fetched successfully",
+      data: {
+        feeds: feedsWithExtras,
+        pagination: paginated.data.pagination,
+      },
+    };
+  } catch (err) {
+    return {
+      status: false,
+      statusCode: 500,
+      message: "Error fetching feeds",
+      data: { error: err.message },
+    };
+  }
+};
+
+// --- Explore Feed Service (POST API) ---
+exports.getExploreFeedServices = async (req) => {
+  try {
+    const currentUserId = req.user.sub;
+
+    // Fetch current user's role
+    const currentUser = await User.findById(currentUserId).lean();
+    if (!currentUser) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    // Extract filters from body
+    const {
+      search,
+      state = [],
+      city = [],
+      job_title = [],
+      job_type = [],
+      page = 1,
+      limit = 10,
+    } = req.body;
+
+    // Ensure all filters are arrays
+    const stateArr = Array.isArray(state) ? state : [state].filter(Boolean);
+    const cityArr = Array.isArray(city) ? city : [city].filter(Boolean);
+    const jobTitleArr = Array.isArray(job_title)
+      ? job_title
+      : [job_title].filter(Boolean);
+    const jobTypeArr = Array.isArray(job_type)
+      ? job_type
+      : [job_type].filter(Boolean);
+
+    // Build filters
+    const filter = {
+      authorId: { $ne: currentUserId }, // 🚫 exclude self
+    };
 
     // Additional filters
     if (search) filter.$or = [{ content: { $regex: search, $options: "i" } }];

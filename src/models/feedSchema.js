@@ -21,6 +21,16 @@ const FeedSchema = new mongoose.Schema(
     work_place_name: [{ type: String }],
     job_type: [{ type: String }],
     cities: [{ type: String }],
+    // ✅ New fields
+    notice_period: {
+      type: Number, // e.g. 15, 30, 60
+      default: null,
+      min: 0, // cannot be negative
+    },
+    is_immediate_joiner: {
+      type: Boolean,
+      default: false,
+    },
 
     noOfReactions: {
       type: Number,
