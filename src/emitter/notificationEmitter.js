@@ -9,95 +9,119 @@ class NotificationEmitter extends EventEmitter {}
 const notificationEmitter = new NotificationEmitter();
 
 /**
+ * Helper: Build safe, anonymous messages
+ */
+function buildMessage(type) {
+  switch (type) {
+    case "feed":
+      return {
+        title: "New post available",
+        body: "Check out the latest update in your feed",
+      };
+    case "rating":
+      return {
+        title: "You have a new rating",
+        body: "Someone interacted with your post",
+      };
+    default:
+      return {
+        title: "New notification",
+        body: "Open the app to see details",
+      };
+  }
+}
+
+/**
  * 🔔 1. Send feed notification to ALL users except the one who posted
  */
-notificationEmitter.on(
-  "sendFeedNotification",
-  async ({ title, body, posted_by, data }) => {
-    console.log("------ Feed Notification Payload ------", {
+notificationEmitter.on("sendFeedNotification", async ({ posted_by, data }) => {
+  const { title, body } = buildMessage("feed");
+
+  console.log("------ Feed Notification Payload ------", {
+    title,
+    body,
+    posted_by,
+    data,
+  });
+
+  try {
+    await initFirebase();
+
+    // Fetch all users except poster
+    const users = await User.find({
+      _id: { $ne: posted_by },
+      fcm_token: { $exists: true, $ne: null },
+    }).select("fcm_token");
+
+    const tokens = users.map((u) => u.fcm_token).filter(Boolean);
+
+    if (!tokens.length) {
+      console.log("⚠️ No valid FCM tokens found for other users");
+      return;
+    }
+
+    // Send one by one
+    for (const token of tokens) {
+      try {
+        const message = {
+          notification: { title, body },
+          data: data
+            ? Object.fromEntries(
+                Object.entries(data).map(([k, v]) => [k, String(v)])
+              )
+            : {},
+          token,
+        };
+
+        const response = await admin.messaging().send(message);
+
+        await Notification.create({
+          title,
+          body,
+          posted_by,
+          token,
+          data,
+          status: "success",
+        });
+
+        console.log("📨 Sent to", token, ":", response);
+      } catch (err) {
+        await Notification.create({
+          title,
+          body,
+          posted_by,
+          token,
+          data,
+          status: "failed",
+          error: err.message,
+        });
+
+        console.error("❌ Failed to send to", token, ":", err.message);
+      }
+    }
+  } catch (error) {
+    console.error("❌ Error sending feed notifications:", error);
+
+    await Notification.create({
       title,
       body,
       posted_by,
       data,
+      status: "failed",
+      error: error.message,
     });
-
-    try {
-      await initFirebase();
-
-      // Fetch all users except poster
-      const users = await User.find({
-        _id: { $ne: posted_by },
-        fcm_token: { $exists: true, $ne: null },
-      }).select("fcm_token");
-
-      const tokens = users.map((u) => u.fcm_token).filter(Boolean);
-
-      if (!tokens.length) {
-        console.log("⚠️ No valid FCM tokens found for other users");
-        return;
-      }
-
-      // Send one by one
-      for (const token of tokens) {
-        try {
-          const message = {
-            notification: { title, body },
-            data: data
-              ? Object.fromEntries(
-                  Object.entries(data).map(([k, v]) => [k, String(v)])
-                )
-              : {},
-            token,
-          };
-
-          const response = await admin.messaging().send(message);
-
-          await Notification.create({
-            title,
-            body,
-            posted_by,
-            token,
-            data,
-            status: "success",
-          });
-
-          console.log("📨 Sent to", token, ":", response);
-        } catch (err) {
-          await Notification.create({
-            title,
-            body,
-            posted_by,
-            token,
-            data,
-            status: "failed",
-            error: err.message,
-          });
-
-          console.error("❌ Failed to send to", token, ":", err.message);
-        }
-      }
-    } catch (error) {
-      console.error("❌ Error sending feed notifications:", error);
-
-      await Notification.create({
-        title,
-        body,
-        posted_by,
-        data,
-        status: "failed",
-        error: error.message,
-      });
-    }
   }
-);
+});
 
 /**
- * 🔔 2. Send notification to a SPECIFIC user
+ * 🔔 2. Send rating notification to a SPECIFIC user
  */
 notificationEmitter.on(
   "sendUserNotification",
-  async ({ title, body, receiverId, data, posted_by }) => {
-    console.log("------ User Notification Payload ------", {
+  async ({ receiverId, posted_by, data }) => {
+    const { title, body } = buildMessage("rating");
+
+    console.log("------ Rating Notification Payload ------", {
       title,
       body,
       receiverId,
