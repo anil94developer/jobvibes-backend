@@ -27,6 +27,7 @@ exports.postFeedServices = async (req) => {
     // ✅ 2. Create feed
     const feed = await Feed.create({
       authorId: userId,
+      authorRole: user.role,
       content,
       media,
       job_title,
@@ -80,6 +81,20 @@ exports.postFeedServices = async (req) => {
 exports.getFeedServices = async (req) => {
   try {
     const currentUserId = req.user.sub;
+
+    // Fetch current user's role
+    const currentUser = await User.findById(currentUserId).lean();
+    if (!currentUser) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found",
+        data: {},
+      };
+    }
+    const currentRole = currentUser.role;
+
+    // Extract filters from body
     const {
       search,
       state = [],
@@ -88,7 +103,7 @@ exports.getFeedServices = async (req) => {
       job_type = [],
       page = 1,
       limit = 10,
-    } = req.body; // ✅ now from body
+    } = req.body;
 
     // Ensure all filters are arrays
     const stateArr = Array.isArray(state) ? state : [state].filter(Boolean);
@@ -102,9 +117,17 @@ exports.getFeedServices = async (req) => {
 
     // Build filters
     const filter = {
-      authorId: { $ne: currentUserId }, // 🚫 exclude logged-in user's posts
+      authorId: { $ne: currentUserId }, // 🚫 exclude self
     };
 
+    // Role-based visibility
+    if (currentRole === "employer") {
+      filter.authorRole = "candidate";
+    } else if (currentRole === "candidate") {
+      filter.authorRole = "employer";
+    }
+
+    // Additional filters
     if (search) filter.$or = [{ content: { $regex: search, $options: "i" } }];
     if (stateArr.length) filter.state = { $in: stateArr };
     if (cityArr.length) filter.cities = { $in: cityArr };

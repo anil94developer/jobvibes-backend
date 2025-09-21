@@ -7,6 +7,11 @@ const FeedSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    authorRole: {
+      type: String,
+      enum: ["candidate", "employer"],
+      required: true,
+    },
 
     // Either content or media is required (you can enforce at app-level via Joi)
     content: { type: String },
