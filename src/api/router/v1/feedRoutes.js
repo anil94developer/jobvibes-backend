@@ -20,7 +20,7 @@ const {
 router.post("/", authenticate, getFeedController);
 
 // Explore Feeds
-router.post("/explore", authenticate, getExploreFeedController);
+router.get("/explore", authenticate, getExploreFeedController);
 
 // Route to post a new feed
 router.post(

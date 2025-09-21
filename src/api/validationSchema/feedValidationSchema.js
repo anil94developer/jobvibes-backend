@@ -8,6 +8,8 @@ exports.feedSchema = Joi.object({
   work_place_name: Joi.array().items(Joi.string()),
   job_type: Joi.array().items(Joi.string()),
   cities: Joi.array().items(Joi.string()),
+  notice_period: Joi.number().min(0),
+  is_immediate_joiner: Joi.boolean(),
 })
   // Require either content or media
   .or("content", "media")

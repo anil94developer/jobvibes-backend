@@ -219,37 +219,12 @@ exports.getExploreFeedServices = async (req) => {
     }
 
     // Extract filters from body
-    const {
-      search,
-      state = [],
-      city = [],
-      job_title = [],
-      job_type = [],
-      page = 1,
-      limit = 10,
-    } = req.body;
-
-    // Ensure all filters are arrays
-    const stateArr = Array.isArray(state) ? state : [state].filter(Boolean);
-    const cityArr = Array.isArray(city) ? city : [city].filter(Boolean);
-    const jobTitleArr = Array.isArray(job_title)
-      ? job_title
-      : [job_title].filter(Boolean);
-    const jobTypeArr = Array.isArray(job_type)
-      ? job_type
-      : [job_type].filter(Boolean);
+    const { page = 1, limit = 10 } = req.query;
 
     // Build filters
     const filter = {
       authorId: { $ne: currentUserId }, // 🚫 exclude self
     };
-
-    // Additional filters
-    if (search) filter.$or = [{ content: { $regex: search, $options: "i" } }];
-    if (stateArr.length) filter.state = { $in: stateArr };
-    if (cityArr.length) filter.cities = { $in: cityArr };
-    if (jobTitleArr.length) filter.job_title = { $in: jobTitleArr };
-    if (jobTypeArr.length) filter.job_type = { $in: jobTypeArr };
 
     // ✅ Use common pagination
     const paginated = await getPaginatedResults(Feed, filter, {
