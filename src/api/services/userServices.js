@@ -519,6 +519,11 @@ exports.updateProfileServices = async (req) => {
         company_name,
         about_company,
         company_address,
+        team_size,
+        location,
+        city,
+        position, // 👈 NEW
+        representative_role,
       } = req.body;
       if (name) updateFields.name = name;
       if (email) updateFields.email = email;
@@ -527,6 +532,12 @@ exports.updateProfileServices = async (req) => {
       if (about_company) updateFields.about_company = about_company;
       if (company_address) updateFields.company_address = company_address;
       if (profile_image) updateFields.profile_image = profile_image;
+      if (team_size) updateFields.team_size = team_size;
+      if (location) updateFields.location = location;
+      if (city) updateFields.city = city;
+      if (position) updateFields.position = position; // 👈 NEW
+      if (representative_role)
+        updateFields.representative_role = representative_role;
     }
 
     // Update user in DB

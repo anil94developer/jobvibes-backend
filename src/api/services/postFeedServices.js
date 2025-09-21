@@ -71,6 +71,9 @@ exports.postFeedServices = async (req) => {
       },
     });
 
+    user.status = "active";
+    await user.save();
+
     return {
       status: true,
       statusCode: 200,
