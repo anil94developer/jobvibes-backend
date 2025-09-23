@@ -72,6 +72,7 @@ exports.postFeedServices = async (req) => {
     });
 
     user.status = "active";
+    user.is_feed_posted = true;
     await user.save();
 
     return {

@@ -624,6 +624,13 @@ exports.getUserFeedServices = async (req) => {
     const feeds = paginated.data.results || [];
     const feedIds = feeds.map((f) => f._id);
 
+    if (feeds.length > 0) {
+      profile.is_feed_posted = true;
+    } else {
+      profile.is_feed_posted = false;
+    }
+    await profile.save();
+
     // ✅ Check if current user reacted to these feeds
     const userReactions = await Reaction.find({
       userId: currentUserId,

@@ -112,14 +112,8 @@ exports.getUserStepStatus = async (user) => {
   }
 
   // Step 3: intro/profile
-  if (
-    (user.description && user.description.trim() !== "") ||
-    (user.intro_video_url && user.intro_video_url.trim() !== "")
-  ) {
-    step3Completed = true;
-  }
 
-  if (user.skip_step_3) {
+  if (user.is_feed_posted || user.skip_step_3) {
     step3Completed = true;
   }
 

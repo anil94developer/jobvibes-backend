@@ -96,6 +96,11 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "inactive"],
       default: "inactive",
     },
+
+    is_feed_posted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
