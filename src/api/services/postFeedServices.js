@@ -291,7 +291,7 @@ exports.getExploreFeedServices = async (req) => {
 exports.postReactionServices = async (req) => {
   try {
     const userId = req.user.sub;
-    const { jobId } = req.params;
+    const { feedId } = req.params;
     const { type, ratingValue } = req.body;
 
     // ✅ Check user exists
@@ -305,8 +305,17 @@ exports.postReactionServices = async (req) => {
       };
     }
 
+    if (user.is_feed_posted === false) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "You cannot react to this post",
+        data: {},
+      };
+    }
+
     // ✅ Check feed exists
-    const feed = await Feed.findById(jobId).populate(
+    const feed = await Feed.findById(feedId).populate(
       "authorId",
       "name profile_image username email role fcm_token"
     );
@@ -330,7 +339,7 @@ exports.postReactionServices = async (req) => {
     }
 
     // ✅ Check if reaction exists
-    const reactionExist = await Reaction.findOne({ userId, feedId: jobId });
+    const reactionExist = await Reaction.findOne({ userId, feedId: feedId });
 
     if (reactionExist) {
       reactionExist.ratingValue = ratingValue;
@@ -347,7 +356,7 @@ exports.postReactionServices = async (req) => {
     // ✅ Create new reaction
     await Reaction.create({
       userId,
-      feedId: jobId,
+      feedId: feedId,
       type,
       ratingValue,
     });

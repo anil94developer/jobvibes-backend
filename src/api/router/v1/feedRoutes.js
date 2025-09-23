@@ -31,7 +31,7 @@ router.post(
 );
 
 router.post(
-  "/:jobId/reactions",
+  "/:feedId/reactions",
   authenticate,
   validatorResponse(postReactionSchema),
   postReactionController
