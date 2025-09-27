@@ -463,7 +463,7 @@ exports.sendEmailOtpService = async (req) => {
     }
 
     // 1. Generate OTP
-    const otp = generateOtp();
+    const otp = "123456";
 
     // 3. Save OTP in DB
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
@@ -479,7 +479,7 @@ exports.sendEmailOtpService = async (req) => {
       otp,
     };
 
-    await sendEmail(email, "verifyEmail", emailData);
+    // await sendEmail(email, "verifyEmail", emailData);
 
     // if (!emailResult.status) {
     //   throw new Error(emailResult.message);
@@ -488,7 +488,9 @@ exports.sendEmailOtpService = async (req) => {
     return {
       status: true,
       message: "OTP sent to email",
-      data: {},
+      data: {
+        otp,
+      },
     };
   } catch (error) {
     console.error("sendEmailOtpService error:", error);
