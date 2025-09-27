@@ -10,24 +10,35 @@ const app = express();
 // Enable CORS
 app.use(cors());
 
-// Connect to MongoDB
+// MongoDB connection
 const URL = process.env.MONGO_URI || "mongodb://localhost:27017/jobvibes";
 mongoose.set("strictQuery", false);
 
-function connectDB() {
-  mongoose
-    .connect(URL, {
+async function connectDB() {
+  try {
+    await mongoose.connect(URL, {
       useUnifiedTopology: true,
       useNewUrlParser: true,
-    })
-    .then(() => console.log("--- MongoDB connected successfully ---"))
-    .catch((err) => {
-      console.error("--- DB Connection ERROR ---", err);
-      // Try reconnecting in 5s
-      setTimeout(connectDB, 5000);
     });
+    console.log("--- MongoDB connected successfully ---");
+  } catch (err) {
+    console.error("--- DB Connection ERROR ---", err.message);
+    console.log("⏳ Retrying MongoDB connection in 5s...");
+    setTimeout(connectDB, 5000);
+  }
 }
 connectDB();
+
+// Reconnect on disconnect/error
+mongoose.connection.on("disconnected", () => {
+  console.error("⚠️ MongoDB disconnected! Reconnecting...");
+  setTimeout(connectDB, 5000);
+});
+
+mongoose.connection.on("error", (err) => {
+  console.error("❌ MongoDB error:", err.message);
+  mongoose.disconnect(); // force reconnect cycle
+});
 
 // Serve static files
 app.use("/uploads", express.static(path.resolve("src/uploads")));
@@ -53,7 +64,7 @@ async function cleanup(signal) {
     console.log("✅ Mongoose connection closed.");
     server.close(() => {
       console.log("✅ Express server closed.");
-      process.exit(0); // process manager (PM2/systemd) will restart
+      process.exit(0); // Render or PM2/systemd will restart
     });
   } catch (err) {
     console.error("❌ Error during shutdown:", err);
@@ -63,4 +74,15 @@ async function cleanup(signal) {
 
 ["SIGINT", "SIGTERM"].forEach((signal) => {
   process.on(signal, () => cleanup(signal));
+});
+
+// Crash handlers (let Render/PM2 restart the app)
+process.on("uncaughtException", (err) => {
+  console.error("💥 Uncaught Exception:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("💥 Unhandled Rejection at:", promise, "reason:", reason);
+  process.exit(1);
 });
