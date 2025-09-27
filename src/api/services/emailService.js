@@ -50,7 +50,14 @@ async function sendEmail(email, templateName, data = {}) {
 
     // Inject variables from data
     const html = template(data);
+    console.log("------ ~ sendEmail ~ html:------", html);
 
+    console.log("Data", {
+      from: EMAIL_USER,
+      to: email,
+      subject: data.subject || "Notification",
+      html,
+    });
     // Send the email
     await transporter.sendMail({
       from: EMAIL_USER,

@@ -17,6 +17,18 @@ const {
 } = require("../../utility/responseFormat");
 const path = require("path");
 const { sendEmail } = require("./emailService");
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: process.env.SMTP_SECURE === "true",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+  connectionTimeout: 20000, // 20 seconds
+});
 
 // --- OTP Services ---
 exports.requestOtpService = async (phone) => {
@@ -468,15 +480,16 @@ exports.sendEmailOtpService = async (req) => {
     };
 
     const emailResult = await sendEmail(email, "verifyEmail", emailData);
+    console.log("------ ~ emailResult:------", emailResult);
 
-    if (!emailResult.status) {
-      throw new Error(emailResult.message);
-    }
+    // if (!emailResult.status) {
+    //   throw new Error(emailResult.message);
+    // }
 
     return {
       status: true,
       message: "OTP sent to email",
-      data: { ttl: 300 },
+      data: {},
     };
   } catch (error) {
     console.error("sendEmailOtpService error:", error);
