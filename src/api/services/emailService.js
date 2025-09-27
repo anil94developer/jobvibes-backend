@@ -40,7 +40,7 @@ async function sendEmail(email, templateName, data = {}) {
     // Use absolute path from project root
     const templateFullPath = path.resolve(
       __dirname,
-      "../templates",
+      "../../templates",
       templateName
     );
 
