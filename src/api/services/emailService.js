@@ -11,6 +11,8 @@ const EMAIL_PASS = process.env.EMAIL_PASS;
 
 if (!EMAIL_USER || !EMAIL_PASS) {
   console.error("❌ EMAIL_USER and EMAIL_PASS must be set in .env");
+} else {
+  console.log("✅ Email service credentials loaded.");
 }
 
 // Create transporter (use host/port for flexibility instead of service)
