@@ -10,14 +10,14 @@ const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
 if (!EMAIL_USER || !EMAIL_PASS) {
-  throw new Error(
-    "Please set EMAIL_USER and EMAIL_PASS environment variables."
-  );
+  console.error("❌ EMAIL_USER and EMAIL_PASS must be set in .env");
 }
 
-// Create transporter
+// Create transporter (use host/port for flexibility instead of service)
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // true for 465, false for 587
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS,
@@ -32,47 +32,43 @@ const transporter = nodemailer.createTransport({
  */
 async function sendEmail(email, templateName, data = {}) {
   try {
-    // Automatically append .hbs if missing
+    // Ensure .hbs extension
     if (!templateName.endsWith(".hbs")) {
       templateName += ".hbs";
     }
 
-    // Construct full path to template relative to this file
-    const templateFullPath = path.join(
+    // Use absolute path from project root
+    const templateFullPath = path.resolve(
       __dirname,
-      "../../templates",
+      "../templates",
       templateName
     );
 
-    // Read and compile the template
+    // Read and compile template
     const templateContent = await fs.readFile(templateFullPath, "utf8");
     const template = handlebars.compile(templateContent);
 
-    // Inject variables from data
+    // Generate HTML
     const html = template(data);
-    console.log("------ ~ sendEmail ~ html:------", html);
 
-    console.log("Data", {
-      from: EMAIL_USER,
+    // Prepare mail options
+    const mailOptions = {
+      from: `"JobVibes" <${EMAIL_USER}>`,
       to: email,
       subject: data.subject || "Notification",
       html,
-    });
-    // Send the email
-    await transporter.sendMail({
-      from: EMAIL_USER,
-      to: email,
-      subject: data.subject || "Notification",
-      html,
-    });
+    };
 
-    console.log(
-      `Email sent successfully to ${email} using template ${templateName}`
-    );
+    console.log("📧 Sending email with data:", mailOptions);
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+
+    console.log(`✅ Email sent successfully to ${email} using ${templateName}`);
     return { status: true, message: "Email sent successfully" };
   } catch (error) {
-    console.error("sendEmail error:", error);
-    return { status: false, message: error.message };
+    console.error("❌ sendEmail error:", error);
+    return { status: false, message: error.message, error };
   }
 }
 

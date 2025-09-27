@@ -479,8 +479,7 @@ exports.sendEmailOtpService = async (req) => {
       otp,
     };
 
-    const emailResult = await sendEmail(email, "verifyEmail", emailData);
-    console.log("------ ~ emailResult:------", emailResult);
+    await sendEmail(email, "verifyEmail", emailData);
 
     // if (!emailResult.status) {
     //   throw new Error(emailResult.message);
