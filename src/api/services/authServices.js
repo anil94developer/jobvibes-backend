@@ -479,7 +479,7 @@ exports.sendEmailOtpService = async (req) => {
       otp,
     };
 
-    // await sendEmail(email, "verifyEmail", emailData);
+    await sendEmail(email, "verifyEmail", emailData);
 
     // if (!emailResult.status) {
     //   throw new Error(emailResult.message);
