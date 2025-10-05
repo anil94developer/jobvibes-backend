@@ -402,22 +402,28 @@ exports.uploadServices = async (req) => {
   }
 };
 
-exports.skillsServices = async (queryParams) => {
+exports.skillsServices = async (req) => {
   try {
-    // Destructure query parameters
-    const { page = 1, limit = 10, search = "" } = queryParams;
+    const queryParams = req.query;
 
-    const filter = search
-      ? { name: { $regex: search, $options: "i" } } // case-insensitive search
-      : {};
+    // Parse query parameters with strict validation
+    const pageNum = parseInt(queryParams?.page, 10);
+    const page = !isNaN(pageNum) && pageNum > 0 ? pageNum : 1;
+
+    const limitNum = parseInt(queryParams?.limit, 10);
+    const limit =
+      !isNaN(limitNum) && limitNum > 0 ? Math.min(limitNum, 100) : 10;
+
+    const search =
+      typeof queryParams?.search === "string" ? queryParams.search : "";
+
+    const filter = search ? { name: { $regex: search, $options: "i" } } : {};
 
     const skip = (page - 1) * limit;
 
+    // Execute queries
     const [skills, total] = await Promise.all([
-      Skill.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(Number(skip))
-        .limit(Number(limit)),
+      Skill.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Skill.countDocuments(filter),
     ]);
 
@@ -431,14 +437,14 @@ exports.skillsServices = async (queryParams) => {
         skills,
         pagination: {
           total,
-          page: Number(page),
-          limit: Number(limit),
+          page,
+          limit,
           totalPages,
         },
       },
     };
   } catch (error) {
-    console.error("An error occurred:", error);
+    console.error("Error in skillsServices:", error.message);
     return {
       status: false,
       statusCode: 500,
