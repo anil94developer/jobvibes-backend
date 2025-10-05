@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const sharp = require("sharp"); // for image compression
 const router = express.Router();
 
 const validatorResponse = require("../../../utility/joiValidator");
@@ -38,8 +39,46 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+// Multer instance with 1GB limit
+const upload = multer({
+  storage,
+  limits: { fileSize: 1024 * 1024 * 1024 }, // 1 GB
+});
 
+// Middleware to compress images > 1GB
+const compressIfLarge = async (req, res, next) => {
+  if (!req.files) return next();
+
+  await Promise.all(
+    req.files.map(async (file) => {
+      if (file.size > 1024 * 1024 * 1024) {
+        const compressedPath = path.join(
+          uploadDir,
+          `compressed-${file.filename}`
+        );
+        try {
+          await sharp(file.path)
+            .jpeg({ quality: 70 }) // compress image to ~70% quality
+            .toFile(compressedPath);
+
+          // Remove original large file
+          fs.unlinkSync(file.path);
+
+          // Update file path to compressed one
+          file.path = compressedPath;
+          file.filename = `compressed-${file.filename}`;
+          file.size = fs.statSync(compressedPath).size;
+        } catch (err) {
+          console.error("Compression error:", err);
+        }
+      }
+    })
+  );
+
+  next();
+};
+
+// Routes
 router.post("/step-1", authenticate, step1Controller);
 router.post("/step-2", authenticate, step2Controller);
 router.post("/step-3", authenticate, step3Controller);
@@ -52,6 +91,7 @@ router.post(
   "/upload",
   authenticate,
   upload.array("files", 5),
+  compressIfLarge, // compression middleware
   uploadController
 );
 

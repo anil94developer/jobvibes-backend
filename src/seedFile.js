@@ -1,41 +1,49 @@
-// seeder/stateCitySeeder.js
+// seedStatesAndCities.js
+
 const mongoose = require("mongoose");
-const State = require("../src/models/stateSchema");
-const City = require("../src/models/citySchema");
-const { citiesByState } = require("./seeder/citiesByState");
+const { citiesByState } = require("./path-to-your-cities-file"); // 👈 adjust path
+const State = require("./models/stateSchema");
+const City = require("./models/citySchema");
 
-require("dotenv").config();
+// MongoDB connection string
+const MONGODB_URI = "mongodb://127.0.0.1:27017/your_database_name"; // 👈 change this
 
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(async () => {
-    console.log("Connected to DB");
+(async () => {
+  try {
+    console.log("⏳ Connecting to MongoDB...");
+    await mongoose.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
-    // Clear old data
+    console.log("✅ Connected to MongoDB");
+
+    // Optional: Clear existing data
     await State.deleteMany({});
     await City.deleteMany({});
-    console.log("Old states and cities removed");
+    console.log("🧹 Cleared existing States and Cities");
 
-    // Insert states and cities
     for (const [stateName, cities] of Object.entries(citiesByState)) {
-      const state = await State.create({ name: stateName });
+      // 1️⃣ Create State
+      const state = new State({ name: stateName });
+      await state.save();
+      console.log(`🌍 Inserted State: ${stateName}`);
 
-      const cityDocs = cities.map((city) => ({
-        name: city,
+      // 2️⃣ Create all cities for this state
+      const cityDocs = cities.map((cityName) => ({
+        name: cityName,
         state: state._id,
       }));
 
       await City.insertMany(cityDocs);
-      console.log(`Inserted ${cities.length} cities for ${stateName}`);
+      console.log(`🏙️ Inserted ${cities.length} cities for ${stateName}`);
     }
 
-    console.log("Seeding completed!");
-    process.exit();
-  })
-  .catch((err) => {
-    console.error("Error connecting to DB:", err);
-    process.exit(1);
-  });
+    console.log("🎉 All states and cities have been successfully inserted!");
+
+    mongoose.connection.close();
+  } catch (error) {
+    console.error("❌ Error seeding database:", error);
+    mongoose.connection.close();
+  }
+})();
