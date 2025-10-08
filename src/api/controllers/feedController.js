@@ -5,6 +5,9 @@ const {
   postReactionServices,
   getReactedFeedServices,
   getExploreFeedServices,
+  deleteFeedService,
+  applyFeedService,
+  getApplicantsService,
 } = require("../services/postFeedServices");
 
 exports.postFeedController = async (req, res, next) => {
@@ -63,6 +66,45 @@ exports.getReactedController = async (req, res, next) => {
     console.log("Response in getReactedController:--", data);
   } catch (error) {
     console.log("Error in getReactedController:--", error);
+    next(error);
+  }
+};
+
+exports.deleteFeedController = async (req, res, next) => {
+  try {
+    console.log("Request body in deleteFeedController:--", req.body);
+    const data = await deleteFeedService(req);
+    sendResponse(res, data);
+    console.log("Response in deleteFeedController:--", data);
+  } catch (error) {
+    console.log("Error in deleteFeedController:--", error);
+    next(error);
+  }
+};
+
+// New controller for applying to a feed
+exports.applyFeedController = async (req, res, next) => {
+  try {
+    console.log("Request body in applyFeedController:--", req.body);
+    // Assuming applyFeedService is a service function to handle the apply logic
+    const data = await applyFeedService(req);
+    sendResponse(res, data);
+    console.log("Response in applyFeedController:--", data);
+  } catch (error) {
+    console.log("Error in applyFeedController:--", error);
+    next(error);
+  }
+};
+
+exports.getApplicantsController = async (req, res, next) => {
+  try {
+    console.log("Request body in getApplicantsController:--", req.body);
+    // Assuming getApplicantsService is a service function to fetch applicants for a feed
+    const data = await getApplicantsService(req);
+    sendResponse(res, data);
+    console.log("Response in getApplicantsController:--", data);
+  } catch (error) {
+    console.log("Error in getApplicantsController:--", error);
     next(error);
   }
 };

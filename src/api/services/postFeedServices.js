@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const User = require("../../models/userSchema");
 const Feed = require("../../models/feedSchema");
 const Reaction = require("../../models/reactionSchema");
+const Application = require("../../models/applySchema");
 const notificationEmitter = require("../../emitter/notificationEmitter");
 const { getPaginatedResults } = require("../../utility/paginate");
 
@@ -172,19 +173,36 @@ exports.getFeedServices = async (req) => {
       feedId: { $in: feedIds },
     }).lean();
 
+    const userApplications = await Application.find({
+      userId: currentUserId,
+      feedId: { $in: feedIds },
+    }).lean();
+
     const reactionMap = {};
+    const applicationMap = {};
     userReactions.forEach((r) => {
       reactionMap[r.feedId.toString()] = r;
+    });
+    userApplications.forEach((a) => {
+      applicationMap[a.feedId.toString()] = a;
     });
 
     // Attach extras
     const feedsWithExtras = feeds.map((feed) => {
       const reaction = reactionMap[feed._id.toString()];
+      const application = applicationMap[feed._id.toString()];
       const isReacted = !!reaction;
+      const isApplied = !!application;
       const ratingValue = reaction ? reaction.ratingValue : 0;
       const { authorId, ...rest } = feed;
 
-      return { ...rest, authorDetails: authorId, isReacted, ratingValue };
+      return {
+        ...rest,
+        authorDetails: authorId,
+        isReacted,
+        isApplied,
+        ratingValue,
+      };
     });
 
     return {
@@ -254,19 +272,37 @@ exports.getExploreFeedServices = async (req) => {
       feedId: { $in: feedIds },
     }).lean();
 
+    const userApplications = await Application.find({
+      userId: currentUserId,
+      feedId: { $in: feedIds },
+    }).lean();
+
     const reactionMap = {};
+    const applicationMap = {};
+
     userReactions.forEach((r) => {
       reactionMap[r.feedId.toString()] = r;
+    });
+    userApplications.forEach((a) => {
+      applicationMap[a.feedId.toString()] = a;
     });
 
     // Attach extras
     const feedsWithExtras = feeds.map((feed) => {
       const reaction = reactionMap[feed._id.toString()];
+      const application = applicationMap[feed._id.toString()];
       const isReacted = !!reaction;
+      const isApplied = !!application;
       const ratingValue = reaction ? reaction.ratingValue : 0;
       const { authorId, ...rest } = feed;
 
-      return { ...rest, authorDetails: authorId, isReacted, ratingValue };
+      return {
+        ...rest,
+        authorDetails: authorId,
+        isReacted,
+        isApplied,
+        ratingValue,
+      };
     });
 
     return {
@@ -391,25 +427,26 @@ exports.postReactionServices = async (req) => {
 exports.getReactedFeedServices = async (req) => {
   try {
     const currentUserId = new mongoose.Types.ObjectId(req.user.sub);
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      minRatingValue,
-      maxRatingValue,
-    } = req.query;
+
+    // ✅ Safely parse numeric query parameters
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const minRatingValue = Number(req.query.minRatingValue);
+    const maxRatingValue = Number(req.query.maxRatingValue);
+    const search = req.query.search?.trim() || "";
+
     const skip = (page - 1) * limit;
 
-    // Build reaction match for current user
+    // ✅ Build reaction match for current user
     const reactionMatch = { userId: currentUserId };
 
-    // Rating filter (numeric only)
-    const minVal = parseFloat(minRatingValue);
-    const maxVal = parseFloat(maxRatingValue);
-    if (!isNaN(minVal) || !isNaN(maxVal)) {
+    // ✅ Rating filter (numeric only)
+    if (!isNaN(minRatingValue) || !isNaN(maxRatingValue)) {
       reactionMatch.ratingValue = {};
-      if (!isNaN(minVal)) reactionMatch.ratingValue.$gte = minVal;
-      if (!isNaN(maxVal)) reactionMatch.ratingValue.$lte = maxVal;
+      if (!isNaN(minRatingValue))
+        reactionMatch.ratingValue.$gte = minRatingValue;
+      if (!isNaN(maxRatingValue))
+        reactionMatch.ratingValue.$lte = maxRatingValue;
     }
 
     const pipeline = [
@@ -427,7 +464,7 @@ exports.getReactedFeedServices = async (req) => {
       { $unwind: "$feed" },
 
       // Optional search filter on feed content
-      ...(search && search.trim() !== ""
+      ...(search
         ? [{ $match: { "feed.content": { $regex: search, $options: "i" } } }]
         : []),
 
@@ -452,7 +489,7 @@ exports.getReactedFeedServices = async (req) => {
                 authorDetails: {
                   _id: "$author._id",
                   name: "$author.name",
-                  profile_image: { $ifNull: ["$author.profile_image", ""] }, // default empty string
+                  profile_image: { $ifNull: ["$author.profile_image", ""] },
                   username: "$author.username",
                   email: "$author.email",
                   role: "$author.role",
@@ -460,17 +497,17 @@ exports.getReactedFeedServices = async (req) => {
                   about_company: "$author.about_company",
                 },
                 isReacted: true,
-                ratingValue: "$ratingValue", // ✅ include rating value
+                ratingValue: "$ratingValue", // ✅ numeric rating included
               },
             ],
           },
         },
       },
 
-      // Sort & paginate
+      // ✅ Sort & paginate using proper numbers
       { $sort: { createdAt: -1 } },
-      { $skip: parseInt(skip) },
-      { $limit: parseInt(limit) },
+      { $skip: skip },
+      { $limit: limit },
     ];
 
     const feeds = await Reaction.aggregate(pipeline);
@@ -486,6 +523,208 @@ exports.getReactedFeedServices = async (req) => {
       status: false,
       statusCode: 500,
       message: "Error fetching reacted feeds",
+      data: { error: error.message },
+    };
+  }
+};
+
+exports.deleteFeedService = async (req) => {
+  try {
+    const userId = req.user.sub;
+    const { feedId } = req.params;
+    // ✅ Check user exists
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    // ✅ Check feed exists
+    const feed = await Feed.findById(feedId);
+    if (!feed) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "Feed not found",
+        data: {},
+      };
+    }
+
+    // 🚫 Prevent user from deleting someone else's feed
+    if (feed.authorId.toString() !== userId.toString()) {
+      return {
+        status: false,
+        statusCode: 403,
+        message: "You are not authorized to delete this feed",
+        data: {},
+      };
+    }
+    // ✅ Delete feed
+    await Feed.findByIdAndDelete(feedId);
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Feed deleted successfully",
+      data: {},
+    };
+  } catch (error) {
+    return {
+      status: false,
+      statusCode: 500,
+      message: "Error deleting feed",
+      data: { error: error.message },
+    };
+  }
+};
+
+// --- Apply to Feed Service ---
+exports.applyFeedService = async (req) => {
+  try {
+    const userId = req.user.sub;
+    const { feedId } = req.params;
+    // ✅ Check user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    if (user.role !== "candidate") {
+      return {
+        status: false,
+        statusCode: 403,
+        message: "You are not authorized to apply to this feed",
+        data: {},
+      };
+    }
+
+    // ✅ Check feed exists
+    const feed = await Feed.findById(feedId);
+
+    if (!feed) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "Feed not found",
+        data: {},
+      };
+    }
+    // 🚫 Prevent user from applying to their own feed
+    if (feed.authorId.toString() === userId.toString()) {
+      return {
+        status: false,
+        statusCode: 403,
+        message: "You cannot apply to your own feed",
+        data: {},
+      };
+    }
+
+    // ✅ Create application
+    const application = await Application.create({
+      userId,
+      feedId,
+      is_applied: true,
+    });
+    feed.noOfApplications += 1;
+    await feed.save();
+    // Here, you can add logic to record the application, e.g., save to an "applications" collection
+
+    // 🔔 Send notification to feed author
+    notificationEmitter.emit("sendUserNotification", {
+      title: "New Feed Application",
+      body: `${user.name} has applied to your feed.`,
+      posted_by: feed.authorId._id,
+      data: { type: "application", feedId: feed._id.toString() },
+    });
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Application sent successfully",
+      data: {},
+    };
+  } catch (error) {
+    return {
+      status: false,
+      statusCode: 500,
+      message: "Error sending application",
+      data: { error: error.message },
+    };
+  }
+};
+
+// --- Get Applicants for a Feed Service ---
+exports.getApplicantsService = async (req) => {
+  try {
+    const userId = req.user.sub;
+    const { feedId } = req.params;
+    // ✅ Check user exists
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    // ✅ Check feed exists
+    const feed = await Feed.findById(feedId);
+
+    if (!feed) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "Feed not found",
+        data: {},
+      };
+    }
+
+    // 🚫 Prevent user from viewing applicants of someone else's feed
+    if (feed.authorId.toString() !== userId.toString()) {
+      return {
+        status: false,
+        statusCode: 403,
+        message: "You are not authorized to view applicants of this feed",
+        data: {},
+      };
+    }
+
+    // ✅ Fetch applicants
+    const applications = await Application.find({ feedId, is_applied: true })
+      .populate("userId", "name email profile_image username")
+      .lean();
+
+    const applicants = applications.map((app) => ({
+      _id: app.userId._id,
+      name: app.userId.name,
+      email: app.userId.email,
+      profile_image: app.userId.profile_image,
+      username: app.userId.username,
+    }));
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Applicants fetched successfully",
+      data: { feed: feed, applicants },
+    };
+  } catch (error) {
+    return {
+      status: false,
+      statusCode: 500,
+      message: "Error fetching applicants",
       data: { error: error.message },
     };
   }

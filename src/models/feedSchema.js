@@ -12,6 +12,11 @@ const FeedSchema = new mongoose.Schema(
       enum: ["candidate", "employer"],
       required: true,
     },
+    status: {
+      type: String,
+      enum: ["approved", "rejected", "pending"],
+      default: "pending",
+    },
 
     // Either content or media is required (you can enforce at app-level via Joi)
     content: { type: String },
@@ -33,6 +38,10 @@ const FeedSchema = new mongoose.Schema(
     },
 
     noOfReactions: {
+      type: Number,
+      default: 0,
+    },
+    noOfApplications: {
       type: Number,
       default: 0,
     },

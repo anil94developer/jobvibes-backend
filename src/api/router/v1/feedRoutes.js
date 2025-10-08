@@ -14,6 +14,9 @@ const {
   postReactionController,
   getReactedController,
   getExploreFeedController,
+  deleteFeedController,
+  applyFeedController,
+  getApplicantsController,
 } = require("../../controllers/feedController");
 
 // Get all post
@@ -39,6 +42,11 @@ router.post(
 
 router.get("/reacted-feeds", authenticate, getReactedController);
 
+router.delete("/:feedId", authenticate, deleteFeedController);
+
+router.patch("/:feedId/apply", authenticate, applyFeedController);
+
+router.get("/:feedId/applicants", authenticate, getApplicantsController); // Placeholder for applicants controller
 // // Jobs
 // router.post("/jobs", validatorResponse(createJobSchema), createJobController);
 // router.get("/jobs/:id", getJobController);
