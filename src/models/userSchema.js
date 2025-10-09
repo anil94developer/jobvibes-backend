@@ -44,6 +44,7 @@ const userSchema = new mongoose.Schema(
         {
           school_university_name: { type: String, required: true },
           board_university: { type: String },
+          course_name: { type: String },
           percentage_grade: { type: Number },
           year: { type: Number },
         },
