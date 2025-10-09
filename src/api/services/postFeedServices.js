@@ -703,7 +703,7 @@ exports.getApplicantsService = async (req) => {
 
     // ✅ Fetch applicants
     const applications = await Application.find({ feedId, is_applied: true })
-      .populate("userId", "name email profile_image username")
+      .populate("userId")
       .lean();
 
     const applicants = applications.map((app) => ({
@@ -712,6 +712,13 @@ exports.getApplicantsService = async (req) => {
       email: app.userId.email,
       profile_image: app.userId.profile_image,
       username: app.userId.username,
+      role: app.userId.role,
+      job_title: app.userId.job_title,
+      experience: app.userId.experience,
+      skills: app.userId.skills,
+      qualification: app.userId.qualification,
+      job_type: app.userId.job_type,
+      description: app.userId.description,
     }));
 
     return {
