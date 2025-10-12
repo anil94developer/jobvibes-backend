@@ -7,6 +7,7 @@ exports.feedSchema = Joi.object({
   job_title: Joi.array().items(Joi.string()),
   work_place_name: Joi.array().items(Joi.string()),
   job_type: Joi.array().items(Joi.string()),
+  states: Joi.array().items(Joi.string()),
   cities: Joi.array().items(Joi.string()),
   notice_period: Joi.number().min(0),
   is_immediate_joiner: Joi.boolean(),

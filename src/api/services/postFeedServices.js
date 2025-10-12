@@ -17,6 +17,7 @@ exports.postFeedServices = async (req) => {
       job_title,
       work_place_name,
       job_type,
+      states,
       cities,
       notice_period,
       is_immediate_joiner,
@@ -42,6 +43,7 @@ exports.postFeedServices = async (req) => {
       job_title,
       work_place_name,
       job_type,
+      states,
       cities,
       notice_period,
       is_immediate_joiner,
@@ -542,6 +544,7 @@ exports.editFeedService = async (req) => {
       work_place_name,
       job_type,
       cities,
+      states,
       notice_period,
       is_immediate_joiner,
     } = req.body;
@@ -587,6 +590,7 @@ exports.editFeedService = async (req) => {
     if (notice_period !== undefined) feed.notice_period = notice_period;
     if (is_immediate_joiner !== undefined)
       feed.is_immediate_joiner = is_immediate_joiner;
+    if (states !== undefined || states.length > 0) feed.states = states;
     await feed.save();
 
     return {

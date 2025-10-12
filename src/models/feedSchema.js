@@ -25,6 +25,7 @@ const FeedSchema = new mongoose.Schema(
     job_title: [{ type: String }],
     work_place_name: [{ type: String }],
     job_type: [{ type: String }],
+    states: [{ type: String }],
     cities: [{ type: String }],
     // ✅ New fields
     notice_period: {
