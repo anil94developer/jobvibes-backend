@@ -8,6 +8,7 @@ const {
   deleteFeedService,
   applyFeedService,
   getApplicantsService,
+  editFeedService,
 } = require("../services/postFeedServices");
 
 exports.postFeedController = async (req, res, next) => {
@@ -66,6 +67,19 @@ exports.getReactedController = async (req, res, next) => {
     console.log("Response in getReactedController:--", data);
   } catch (error) {
     console.log("Error in getReactedController:--", error);
+    next(error);
+  }
+};
+
+exports.editFeedController = async (req, res, next) => {
+  try {
+    console.log("Request body in editFeedController:--", req.body);
+    // Assuming editFeedService is a service function to handle the edit logic
+    const data = await editFeedService(req);
+    sendResponse(res, data);
+    console.log("Response in editFeedController:--", data);
+  } catch (error) {
+    console.log("Error in editFeedController:--", error);
     next(error);
   }
 };

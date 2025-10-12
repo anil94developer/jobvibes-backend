@@ -23,6 +23,16 @@ function buildMessage(type) {
         title: "You have a new rating",
         body: "Someone interacted with your post",
       };
+    case "application":
+      return {
+        title: "New application received",
+        body: "You have a new application for your post",
+      };
+    case "reaction":
+      return {
+        title: "New reaction received",
+        body: "Someone reacted to your post",
+      };
     default:
       return {
         title: "New notification",

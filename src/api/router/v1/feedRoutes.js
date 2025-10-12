@@ -17,6 +17,7 @@ const {
   deleteFeedController,
   applyFeedController,
   getApplicantsController,
+  editFeedController,
 } = require("../../controllers/feedController");
 
 // Get all post
@@ -41,6 +42,8 @@ router.post(
 );
 
 router.get("/reacted-feeds", authenticate, getReactedController);
+
+router.put("/:feedId", authenticate, editFeedController);
 
 router.delete("/:feedId", authenticate, deleteFeedController);
 

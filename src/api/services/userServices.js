@@ -214,16 +214,15 @@ exports.step2Services = async (req) => {
         updateFields.representative_role = representative_role.trim();
       }
     } else if (user.role === "candidate") {
-      const { skills, experience, qualifications, resume_url, job_type } =
-        req.body;
+      const { skills, experience, qualifications, job_type } = req.body;
       const allowedJobTypes = ["freelance", "full_time", "part_time"];
 
-      if (!skills || !resume_url || !job_type) {
+      if (!skills || !job_type) {
         return {
           status: false,
           statusCode: 400,
           message:
-            "Candidate must provide skills, experience, qualifications, resume_url, and job_type",
+            "Candidate must provide skills, experience, qualifications and job_type",
           data: {},
         };
       }
@@ -257,7 +256,6 @@ exports.step2Services = async (req) => {
         skills,
         experience,
         qualifications,
-        resume_url,
         job_type, // store as array
       };
     } else {

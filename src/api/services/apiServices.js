@@ -9,7 +9,7 @@ const { getPaginatedResults } = require("../../utility/paginate");
 
 exports.getStatesServices = async (req) => {
   try {
-    const states = await State.find().select("name");
+    const states = await State.find().sort({ name: 1 }).select("name");
     return { status: true, message: "States list", data: states };
   } catch (error) {
     return { status: false, message: error.message, data: [] };

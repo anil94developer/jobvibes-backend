@@ -400,12 +400,15 @@ exports.postReactionServices = async (req) => {
     feed.noOfReactions += 1;
     await feed.save();
 
-    // 🔔 Send notification to feed author
-    notificationEmitter.emit("sendUserNotification", {
-      title: "New Feed Reaction",
-      body: `${user.name} rated your feed.`,
-      posted_by: feed.authorId._id,
-      data: { type: "reaction", feedId: feed._id.toString() },
+    notificationEmitter.emit("sendFeedNotification", {
+      title: "New Feed",
+      body: "Reacted to your post.",
+      token: user.fcm_token,
+      posted_by: user._id,
+      data: {
+        type: "reaction",
+        feedId: feed._id,
+      },
     });
 
     return {
@@ -528,6 +531,80 @@ exports.getReactedFeedServices = async (req) => {
   }
 };
 
+exports.editFeedService = async (req) => {
+  try {
+    const userId = req.user.sub;
+    const { feedId } = req.params;
+
+    const {
+      content,
+      job_title,
+      work_place_name,
+      job_type,
+      cities,
+      notice_period,
+      is_immediate_joiner,
+    } = req.body;
+
+    // ✅ Check user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    // ✅ Check feed exists
+    const feed = await Feed.findById(feedId);
+    if (!feed) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "Feed not found",
+        data: {},
+      };
+    }
+
+    // 🚫 Prevent user from editing someone else's feed
+    if (feed.authorId.toString() !== userId.toString()) {
+      return {
+        status: false,
+        statusCode: 403,
+        message: "You are not authorized to edit this feed",
+        data: {},
+      };
+    }
+
+    // ✅ Update feed fields
+    if (content !== undefined) feed.content = content;
+    if (job_title !== undefined) feed.job_title = job_title;
+    if (work_place_name !== undefined) feed.work_place_name = work_place_name;
+    if (job_type !== undefined) feed.job_type = job_type;
+    if (cities !== undefined) feed.cities = cities;
+    if (notice_period !== undefined) feed.notice_period = notice_period;
+    if (is_immediate_joiner !== undefined)
+      feed.is_immediate_joiner = is_immediate_joiner;
+    await feed.save();
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: "Feed updated successfully",
+      data: feed,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      statusCode: 500,
+      message: "Error updating feed",
+      data: { error: error.message },
+    };
+  }
+};
+
 exports.deleteFeedService = async (req) => {
   try {
     const userId = req.user.sub;
@@ -638,12 +715,15 @@ exports.applyFeedService = async (req) => {
     await feed.save();
     // Here, you can add logic to record the application, e.g., save to an "applications" collection
 
-    // 🔔 Send notification to feed author
-    notificationEmitter.emit("sendUserNotification", {
-      title: "New Feed Application",
-      body: `${user.name} has applied to your feed.`,
-      posted_by: feed.authorId._id,
-      data: { type: "application", feedId: feed._id.toString() },
+    notificationEmitter.emit("sendFeedNotification", {
+      title: "New application received",
+      body: "Someone applied to your post.",
+      token: user.fcm_token,
+      posted_by: user._id,
+      data: {
+        type: "application",
+        feedId: feed._id,
+      },
     });
 
     return {
