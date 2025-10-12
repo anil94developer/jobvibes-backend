@@ -367,17 +367,25 @@ exports.uploadServices = async (req) => {
 
     const uploads = await Promise.all(
       req.files.map(async (file) => {
+        // Upload to Cloudinary
         const result = await cloudinary.uploader.upload(file.path, {
           resource_type: "auto",
         });
 
+        // Remove local temp file
         fs.unlinkSync(file.path);
 
-        return {
+        // Save file record to DB
+        const fileDoc = await File.create({
           filename: file.filename,
           originalName: file.originalname,
+          path: file.path, // ✅ Local path
+          url: result.secure_url, // ✅ Cloudinary public URL
           size: result.bytes,
-          url: result.secure_url,
+        });
+
+        return {
+          ...fileDoc._doc,
           public_id: result.public_id,
         };
       })
@@ -391,6 +399,104 @@ exports.uploadServices = async (req) => {
     };
   } catch (error) {
     console.error("Upload error:", error);
+    return {
+      status: false,
+      statusCode: 500,
+      message: error.message,
+      data: {},
+    };
+  }
+};
+
+// --- Resume Upload Service ---
+exports.resumeServices = async (req) => {
+  try {
+    const userId = req.user.sub;
+    if (!userId) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return {
+        status: false,
+        statusCode: 404,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    if (user.role !== "candidate") {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "Only candidates can upload resumes",
+        data: {},
+      };
+    }
+
+    if (!req.file) {
+      return {
+        status: false,
+        statusCode: 400,
+        message: "No file uploaded",
+        data: {},
+      };
+    }
+
+    const file = req.file;
+
+    // Check if a resume already exists for this user
+    const existingResume = await File.findOne({ user: userId, type: "resume" });
+
+    // Upload new file to Cloudinary
+    const result = await cloudinary.uploader.upload(file.path, {
+      resource_type: "auto",
+    });
+
+    // Remove temp file
+    fs.unlinkSync(file.path);
+
+    // Delete old resume if it exists
+    if (existingResume) {
+      try {
+        await cloudinary.uploader.destroy(existingResume.public_id);
+        await File.deleteOne({ _id: existingResume._id });
+      } catch (err) {
+        console.error("Error removing old resume:", err.message);
+      }
+    }
+
+    // Save new resume metadata in DB
+    const newResume = await File.create({
+      user: userId,
+      filename: file.filename,
+      originalName: file.originalname,
+      path: file.path, // ✅ local file path (before deletion)
+      url: result.secure_url, // ✅ Cloudinary public URL
+      size: result.bytes,
+      public_id: result.public_id,
+      type: "resume",
+    });
+
+    user.resume_url = result.secure_url;
+    const updatedUserInfo = await user.save();
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: existingResume
+        ? "Resume updated successfully"
+        : "Resume uploaded successfully",
+      data: updatedUserInfo,
+    };
+  } catch (error) {
+    console.error("Resume upload/update error:", error);
     return {
       status: false,
       statusCode: 500,

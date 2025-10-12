@@ -15,6 +15,7 @@ const {
   updateController,
   getProfileController,
   getFeedController,
+  resumeController,
 } = require("../../controllers/userController.js");
 const { authenticate } = require("../../middleware/authMiddleware");
 const {
@@ -94,6 +95,8 @@ router.post(
   compressIfLarge, // compression middleware
   uploadController
 );
+
+router.post("/resume", authenticate, upload.single("file"), resumeController);
 
 // Get user details by id
 router.get("/:id", authenticate, getProfileController);
