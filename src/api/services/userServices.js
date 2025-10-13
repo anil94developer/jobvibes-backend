@@ -686,7 +686,7 @@ exports.getProfileServices = async (req) => {
       status: true,
       statusCode: 200,
       message: "Profile data fetch successfully!!",
-      data: { ...destructureUser(updatedUser) },
+      data: { ...destructureUser(profile) },
     };
   } catch (err) {
     throw err;
