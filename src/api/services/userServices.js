@@ -6,16 +6,22 @@ const File = require("../../models/fileSchema"); // import your File schema
 const Skill = require("../../models/skillsSchema");
 const { destructureUser } = require("../../utility/responseFormat");
 const notificationEmitter = require("../../emitter/notificationEmitter");
-const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
+const path = require("path");
 const CONSTANT = require("../../utility/constant");
 const { getPaginatedResults } = require("../../utility/paginate");
 
-cloudinary.config({
-  cloud_name: CONSTANT.CLOUDINARY_CLOUD_NAME,
-  api_key: CONSTANT.CLOUDINARY_API_KEY,
-  api_secret: CONSTANT.CLOUDINARY_API_SECRET,
-});
+// Helper function to build absolute URLs
+const buildAbsoluteUrl = (pathOrUrl, req) => {
+  if (!pathOrUrl) return pathOrUrl;
+
+  // if already absolute (http/https), return as is
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+
+  const base = `${req.protocol}://${req.get("host")}`;
+
+  return `${base}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
+};
 
 // --- Candidate step 1 Service ---
 exports.step1Services = async (req) => {
@@ -323,7 +329,7 @@ exports.step3Services = async (req) => {
     let updateFields = {};
     if (description) updateFields.description = description;
     if (intro_video_url) {
-      updateFields.intro_video_url = intro_video_url;
+      updateFields.intro_video_url = buildAbsoluteUrl(intro_video_url, req);
       updateFields.status = "active"; // ✅ Set active if intro video exists
     } else {
       updateFields.status = "inactive"; // ✅ Force inactive if no video
@@ -367,26 +373,20 @@ exports.uploadServices = async (req) => {
 
     const uploads = await Promise.all(
       req.files.map(async (file) => {
-        // Upload to Cloudinary
-        const result = await cloudinary.uploader.upload(file.path, {
-          resource_type: "auto",
-        });
+        const relativeUrl = `/uploads/${file.filename}`;
+        const absoluteUrl = buildAbsoluteUrl(relativeUrl, req);
 
-        // Remove local temp file
-        fs.unlinkSync(file.path);
-
-        // Save file record to DB
         const fileDoc = await File.create({
           filename: file.filename,
           originalName: file.originalname,
-          path: file.path, // ✅ Local path
-          url: result.secure_url, // ✅ Cloudinary public URL
-          size: result.bytes,
+          path: file.path,
+          url: absoluteUrl,
+          size: file.size,
         });
 
         return {
           ...fileDoc._doc,
-          public_id: result.public_id,
+          url: absoluteUrl,
         };
       })
     );
@@ -454,37 +454,39 @@ exports.resumeServices = async (req) => {
     // Check if a resume already exists for this user
     const existingResume = await File.findOne({ user: userId, type: "resume" });
 
-    // Upload new file to Cloudinary
-    const result = await cloudinary.uploader.upload(file.path, {
-      resource_type: "auto",
-    });
-
-    // Remove temp file
-    fs.unlinkSync(file.path);
-
-    // Delete old resume if it exists
+    // Delete old resume file and record if it exists
     if (existingResume) {
       try {
-        await cloudinary.uploader.destroy(existingResume.public_id);
+        if (existingResume.path && fs.existsSync(existingResume.path)) {
+          fs.unlinkSync(existingResume.path);
+        } else if (existingResume.url) {
+          const oldName = existingResume.url.split("/uploads/")[1];
+          if (oldName) {
+            const oldPath = path.join(process.cwd(), "src", "uploads", oldName);
+            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+          }
+        }
         await File.deleteOne({ _id: existingResume._id });
       } catch (err) {
         console.error("Error removing old resume:", err.message);
       }
     }
 
+    const relativeUrl = `/uploads/${file.filename}`;
+    const absoluteUrl = buildAbsoluteUrl(relativeUrl, req);
+
     // Save new resume metadata in DB
     const newResume = await File.create({
       user: userId,
       filename: file.filename,
       originalName: file.originalname,
-      path: file.path, // ✅ local file path (before deletion)
-      url: result.secure_url, // ✅ Cloudinary public URL
-      size: result.bytes,
-      public_id: result.public_id,
+      path: file.path,
+      url: absoluteUrl,
+      size: file.size,
       type: "resume",
     });
 
-    user.resume_url = result.secure_url;
+    user.resume_url = absoluteUrl;
     const updatedUserInfo = await user.save();
 
     return {
@@ -612,10 +614,12 @@ exports.updateProfileServices = async (req) => {
       if (gender) updateFields.gender = gender;
       if (experience) updateFields.experience = experience;
       if (qualifications) updateFields.qualifications = qualifications;
-      if (resume_url) updateFields.resume_url = resume_url;
+      if (resume_url)
+        updateFields.resume_url = buildAbsoluteUrl(resume_url, req);
       if (job_type) updateFields.job_type = job_type;
       if (description) updateFields.description = description;
-      if (intro_video_url) updateFields.intro_video_url = intro_video_url;
+      if (intro_video_url)
+        updateFields.intro_video_url = buildAbsoluteUrl(intro_video_url, req);
       if (profile_image) updateFields.profile_image = profile_image;
     }
 
